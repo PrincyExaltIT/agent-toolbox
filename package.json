@@ -15,8 +15,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -w -p tsconfig.json",
-    "clean": "rm -rf dist",
-    "prepare": "npm run build"
+    "clean": "rm -rf dist"
   },
   "engines": {
     "node": ">=20"

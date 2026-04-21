@@ -10,6 +10,7 @@ import { status } from './commands/status.js';
 import { switchProfile } from './commands/switch.js';
 import { surfaceDisable, surfaceEnable } from './commands/surface.js';
 import { showDashboard } from './commands/default.js';
+import { newProfile } from './commands/new.js';
 const pkgJson = JSON.parse(fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'));
 const program = new Command();
 program
@@ -63,6 +64,18 @@ sharedInstallOptions(surfaceCmd
     .requiredOption('--profile <name>', 'profile name')
     .description('Disable one surface for a profile')).action(async (surface, opts) => {
     await surfaceDisable(surface, opts);
+});
+program
+    .command('new')
+    .argument('<profile>', 'profile name (created under ~/.agent-toolbox/profiles/<name>)')
+    .description('Scaffold a new user-scope profile interactively')
+    .option('--description <s>', 'profile description (one line)')
+    .option('--shared <csv>', 'shared guideline filenames, csv')
+    .option('--stacks <csv>', 'stack names, csv')
+    .option('--copilot-description <s>', 'Copilot agent description')
+    .option('--yes', 'skip prompts and use defaults / passed flags')
+    .action(async (profile, opts) => {
+    await newProfile(profile, opts);
 });
 program
     .command('list')

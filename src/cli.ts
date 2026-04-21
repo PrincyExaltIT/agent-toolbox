@@ -10,6 +10,7 @@ import { status } from './commands/status.js';
 import { switchProfile } from './commands/switch.js';
 import { surfaceDisable, surfaceEnable } from './commands/surface.js';
 import { showDashboard } from './commands/default.js';
+import { newProfile } from './commands/new.js';
 import { SurfaceName } from './state.js';
 
 const pkgJson = JSON.parse(
@@ -88,6 +89,19 @@ sharedInstallOptions(
 ).action(async (surface: string, opts) => {
   await surfaceDisable(surface as SurfaceName, opts);
 });
+
+program
+  .command('new')
+  .argument('<profile>', 'profile name (created under ~/.agent-toolbox/profiles/<name>)')
+  .description('Scaffold a new user-scope profile interactively')
+  .option('--description <s>', 'profile description (one line)')
+  .option('--shared <csv>', 'shared guideline filenames, csv')
+  .option('--stacks <csv>', 'stack names, csv')
+  .option('--copilot-description <s>', 'Copilot agent description')
+  .option('--yes', 'skip prompts and use defaults / passed flags')
+  .action(async (profile: string, opts) => {
+    await newProfile(profile, opts);
+  });
 
 program
   .command('list')

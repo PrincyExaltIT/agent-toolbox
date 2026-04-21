@@ -70,3 +70,63 @@ export function resolveStack(stack) {
         return bundledPath;
     throw new Error(`Stack "${stack}" not found in user or bundled trees.`);
 }
+/**
+ * List every shared guideline file available (bundled and user-scope). User
+ * files with the same filename as bundled ones shadow the bundled entry.
+ */
+export function listSharedGuidelines() {
+    const result = new Map();
+    const roots = [
+        [path.join(userProfilesRoot(), '..', 'shared'), 'user'],
+        [path.join(bundledGuidelinesRoot(), 'shared'), 'bundled'],
+    ];
+    for (const [dir, origin] of roots) {
+        if (!fs.existsSync(dir))
+            continue;
+        for (const f of fs.readdirSync(dir)) {
+            if (!f.endsWith('.md'))
+                continue;
+            if (result.has(f))
+                continue; // user wins
+            const absolutePath = path.join(dir, f);
+            result.set(f, { file: f, origin, absolutePath, description: readFrontmatterDescription(absolutePath) });
+        }
+    }
+    return [...result.values()].sort((a, b) => a.file.localeCompare(b.file));
+}
+/**
+ * List every stack directory available. User stacks shadow bundled ones.
+ */
+export function listStacks() {
+    const result = new Map();
+    const roots = [
+        [path.join(userProfilesRoot(), '..', 'stacks'), 'user'],
+        [path.join(bundledGuidelinesRoot(), 'stacks'), 'bundled'],
+    ];
+    for (const [dir, origin] of roots) {
+        if (!fs.existsSync(dir))
+            continue;
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            if (!entry.isDirectory())
+                continue;
+            if (result.has(entry.name))
+                continue;
+            result.set(entry.name, { name: entry.name, origin, dir: path.join(dir, entry.name) });
+        }
+    }
+    return [...result.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+function readFrontmatterDescription(file) {
+    const content = fs.readFileSync(file, 'utf8');
+    const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
+    if (!match)
+        return undefined;
+    const line = match[1].split('\n').find((l) => l.startsWith('description:'));
+    if (!line)
+        return undefined;
+    return line
+        .replace(/^description:\s*/, '')
+        .replace(/^"|"$/g, '')
+        .replace(/^'|'$/g, '')
+        .trim();
+}

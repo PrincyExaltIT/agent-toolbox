@@ -19,15 +19,13 @@ Load and follow these guidelines whenever the current task involves **creating c
 
 ## Conventional commits
 
-Every commit on `main` follows [Conventional Commits](https://www.conventionalcommits.org/):
+Every commit on `main` follows [Conventional Commits](https://www.conventionalcommits.org/) — **single-line only**:
 
 ```
 <type>(<scope>): <short description>
-
-<optional body — motivation, contrast with previous behavior>
-
-<optional footer — issue refs, breaking changes>
 ```
+
+No body, no footer. If the subject cannot carry the change on its own, the change is too large — split the commit. Context goes into the PR description, not the commit body.
 
 ### Allowed types
 
@@ -62,54 +60,28 @@ Examples: `feat(movies)`, `fix(pagination)`, `build(deps)`, `ci(front)`.
 - **Max 72 characters** total (including `type(scope):`).
 - **No trailing period.**
 - **Lowercase after the colon** unless the first word is a proper noun.
-
-### Body
-
-Explains **why** and **how it differs** from the previous behavior — not what the diff already shows.
-
-- Wrap at 72 characters.
-- Short paragraphs.
-- Omit when there's no meaningful "why" beyond the subject.
-
-### Footer
-
-- `Refs #123` or `Closes #123` for issues.
-- `BREAKING CHANGE: <description>` for any change that breaks the public API, the HTTP contract, a persisted schema (Firestore document shape), or a configuration format. Also mention in the body.
-- **No `Co-Authored-By` trailer.** Single-author commits. Credit collaborators / AI assistants in the PR description, not the commit.
+- **No trailers at all.** No `Co-Authored-By`, no `Refs #N`, no `BREAKING CHANGE:` in the commit. Issue links and breaking-change callouts belong in the PR description. AI assistants and collaborators are credited in the PR description too, never in the commit.
 
 ### Examples
 
 ```
 feat(movies): add genre filter on the results page
-
-Before this change the results page always returned every genre. The
-filter plugs into MovieFilter and narrows the Firestore query in the
-query-side repository.
-
-Refs #87
 ```
 
 ```
 fix(pagination): clamp visible-pages window on last page
-
-The window could show pages beyond totalPages when currentPage equaled
-totalPages, producing disabled links. Clamp the upper bound to
-totalPages and keep the window size at three.
 ```
 
 ```
 refactor(domain): extract MovieId value object from Movie
-
 ```
 
 ```
 build(deps): bump @angular/core from 20.1.0 to 20.1.3
-
 ```
 
 ```
 test(usecase): cover SynchroniseMoviesUseCase with repository fake
-
 ```
 
 ## Commit granularity
@@ -132,16 +104,10 @@ git revert <commit-sha>
 git push origin main
 ```
 
-The revert subject keeps Conventional-Commit format:
+The revert subject keeps Conventional-Commit format (still single-line):
 
 ```
 revert: feat(movies) add genre filter on the results page
-
-This reverts commit <sha>. The filter masked movies that should have
-stayed visible when no genre was selected. Will re-land after
-movies/filter-default is merged.
-
-Refs #87
 ```
 
 Never rewrite history on `main` (`git push --force`, `git reset --hard` then push, `git rebase -i` on pushed commits). On local feature branches before the first push, rebasing is fine — after that, it's not.
@@ -157,12 +123,13 @@ Never rewrite history on `main` (`git push --force`, `git reset --hard` then pus
 ## What the agent must never do
 
 - Create a commit that mixes unrelated changes.
+- Write a multi-line commit message — subject only, no body, no footer.
 - Write a subject in the past tense or with a trailing period.
 - Exceed 72 characters on the subject line.
+- Add any trailer to a commit — no `Co-Authored-By` (including for AI assistants like Claude, Copilot, ChatGPT), no `Refs #`, no `Closes #`, no `BREAKING CHANGE:`. Those live in the PR description.
 - Force-push to `main` or rewrite pushed history.
 - Use `git reset --hard` on shared branches.
 - Skip `git revert` in favor of history rewriting to undo a landed commit.
 - Land a commit that breaks the build or fails tests.
 - Merge a long-lived feature branch instead of using a feature flag.
 - `git add -A` / `git add .` — always stage specific files.
-- Add a `Co-Authored-By` trailer (including for AI assistants).

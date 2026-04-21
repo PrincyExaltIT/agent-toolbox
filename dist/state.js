@@ -33,8 +33,35 @@ export function recordUninstall(profile, surface) {
     if (!state.profiles[profile])
         return;
     delete state.profiles[profile].surfaces[surface];
-    if (Object.keys(state.profiles[profile].surfaces).length === 0) {
+    const surfacesEmpty = Object.keys(state.profiles[profile].surfaces).length === 0;
+    const pausedEmpty = !state.profiles[profile].pausedSurfaces
+        || Object.keys(state.profiles[profile].pausedSurfaces ?? {}).length === 0;
+    if (surfacesEmpty && pausedEmpty) {
         delete state.profiles[profile];
+    }
+    writeState(state);
+}
+export function setPausedSurfaces(profile, surfaces) {
+    const state = readState();
+    state.profiles[profile] ??= { surfaces: {} };
+    state.profiles[profile].pausedSurfaces = surfaces.reduce((acc, s) => {
+        acc[s] = { pausedAt: new Date().toISOString() };
+        return acc;
+    }, {});
+    writeState(state);
+}
+export function clearPausedSurfaces(profile) {
+    const state = readState();
+    if (!state.profiles[profile])
+        return;
+    delete state.profiles[profile].pausedSurfaces;
+    const surfacesEmpty = Object.keys(state.profiles[profile].surfaces).length === 0;
+    if (surfacesEmpty) {
+        delete state.profiles[profile];
+    }
+    else {
+        writeState(state);
+        return;
     }
     writeState(state);
 }

@@ -9,6 +9,7 @@
 
 ### New
 
+- `atb off <profile>` / `atb on <profile>` — quick pause / resume that remembers the active surface set across sessions (persisted in `state.json` under `pausedSurfaces`). Use when switching out of dev work (e.g. non-code sessions) and back in.
 - Short binary alias `atb` — both `atb` and `agent-toolbox` point at the same CLI.
 - Short surface flags: `-c` `--claude`, `-v` `--copilot-vs`, `-l` `--copilot-cli`, `-x` `--codex`.
 - `-s, --surfaces <csv>` multi-value flag accepting shortcodes (`c,vs,cli,x,all`) or full names.

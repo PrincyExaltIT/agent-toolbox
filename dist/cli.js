@@ -12,6 +12,7 @@ import { surfaceDisable, surfaceEnable } from './commands/surface.js';
 import { showDashboard } from './commands/default.js';
 import { newProfile } from './commands/new.js';
 import { installCompletion, uninstallCompletion, runCompletionHook, } from './commands/completion.js';
+import { off, on } from './commands/toggle.js';
 // Completion must run before commander parses anything — omelette short-circuits
 // the process when the shell is asking for suggestions.
 runCompletionHook();
@@ -80,6 +81,30 @@ program
     .option('--yes', 'skip prompts and use defaults / passed flags')
     .action(async (profile, opts) => {
     await newProfile(profile, opts);
+});
+program
+    .command('off')
+    .argument('<profile>', 'profile to pause (remembers the active surface set)')
+    .description('Pause a profile — uninstall from every active surface, keep the set in state for `atb on`')
+    .option('--dry-run', 'preview actions without writing')
+    .option('--config-dir <dir>', 'override the Claude user config dir')
+    .option('--vscode-settings <path>', 'override the VS Code user settings.json path')
+    .option('--codex-home <dir>', 'override the Codex home dir (~/.codex)')
+    .option('--write-shell-rc <file>', 'materialize the Copilot CLI export in this shell rc')
+    .action(async (profile, opts) => {
+    await off(profile, opts);
+});
+program
+    .command('on')
+    .argument('<profile>', 'profile to resume (restores the set that was active before `atb off`)')
+    .description('Resume a paused profile — re-install on the exact same surface set that was active before')
+    .option('--dry-run', 'preview actions without writing')
+    .option('--config-dir <dir>', 'override the Claude user config dir')
+    .option('--vscode-settings <path>', 'override the VS Code user settings.json path')
+    .option('--codex-home <dir>', 'override the Codex home dir (~/.codex)')
+    .option('--write-shell-rc <file>', 'materialize the Copilot CLI export in this shell rc')
+    .action(async (profile, opts) => {
+    await on(profile, opts);
 });
 program
     .command('list')

@@ -74,6 +74,8 @@ atb surface enable copilot-cli --profile frequencies
 atb list
 atb status
 atb status --json | jq .                         # machine-readable output
+atb off frequencies                              # pause: uninstall everywhere, remember the active set
+atb on frequencies                               # resume: restore exactly what was active before
 atb completion install                           # hook tab-completion into your shell
 ```
 
@@ -90,6 +92,8 @@ The compiled `dist/` is committed so installing does not require a build step on
 | `new <profile> [--description --shared --stacks --yes]` | Scaffold a new user-scope profile at `~/.agent-toolbox/profiles/<name>/`. |
 | `list [--json]` | Show every available profile (bundled + `~/.agent-toolbox/profiles/`). |
 | `status [--json]` | Show which profile is installed on each surface (verified against the filesystem). |
+| `off <profile>` | Pause a profile — uninstall from every active surface but remember the set. |
+| `on <profile>` | Resume a paused profile — re-install on the exact same surfaces that were active before `off`. |
 | `completion install` / `completion uninstall` | Hook or unhook shell tab-completion (bash/zsh/fish). |
 
 ### Surface flags and shortcodes

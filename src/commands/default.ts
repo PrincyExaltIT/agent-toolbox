@@ -27,8 +27,16 @@ export function showDashboard(): boolean {
     console.log(kleur.bold('Installed profiles:'));
     for (const name of installed.sort()) {
       const active = SURFACES.filter((s) => state.profiles[name].surfaces[s]);
-      const badges = active.map((s) => kleur.green(s)).join(' ');
-      console.log(`  ${kleur.cyan(name.padEnd(20))} ${badges || kleur.gray('(none)')}`);
+      const paused = SURFACES.filter((s) => state.profiles[name].pausedSurfaces?.[s]);
+      let label: string;
+      if (active.length > 0) {
+        label = active.map((s) => kleur.green(s)).join(' ');
+      } else if (paused.length > 0) {
+        label = `${kleur.yellow('paused')} (${paused.join(', ')})`;
+      } else {
+        label = kleur.gray('(none)');
+      }
+      console.log(`  ${kleur.cyan(name.padEnd(20))} ${label}`);
     }
     console.log();
   }

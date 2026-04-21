@@ -11,7 +11,16 @@ import { switchProfile } from './commands/switch.js';
 import { surfaceDisable, surfaceEnable } from './commands/surface.js';
 import { showDashboard } from './commands/default.js';
 import { newProfile } from './commands/new.js';
+import {
+  installCompletion,
+  uninstallCompletion,
+  runCompletionHook,
+} from './commands/completion.js';
 import { SurfaceName } from './state.js';
+
+// Completion must run before commander parses anything — omelette short-circuits
+// the process when the shell is asking for suggestions.
+runCompletionHook();
 
 const pkgJson = JSON.parse(
   fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8')
@@ -117,6 +126,24 @@ program
   .option('--json', 'emit machine-readable JSON')
   .action((opts) => {
     status(opts);
+  });
+
+const completionCmd = program
+  .command('completion')
+  .description('Install or uninstall shell tab-completion');
+
+completionCmd
+  .command('install')
+  .description('Hook completion into your shell rc (bash/zsh/fish)')
+  .action(() => {
+    installCompletion();
+  });
+
+completionCmd
+  .command('uninstall')
+  .description('Remove the completion hook from your shell rc')
+  .action(() => {
+    uninstallCompletion();
   });
 
 // Bare invocation (`at` with no args) — show the dashboard, falling back to

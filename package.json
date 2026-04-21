@@ -32,10 +32,12 @@
     "@clack/prompts": "^0.11.0",
     "commander": "^14.0.0",
     "kleur": "^4.1.5",
+    "omelette": "^0.4.17",
     "yaml": "^2.8.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/omelette": "^0.4.5",
     "typescript": "^5.7.0"
   }
 }

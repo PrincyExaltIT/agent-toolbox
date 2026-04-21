@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Generate Copilot artifacts for a profile:
-#   profiles/<name>/<name>.chatmode.md   # VS Code chat mode (frontmatter + body)
+#   profiles/<name>/<name>.agent.md      # VS Code custom agent (frontmatter + body)
+#                                        # NOTE: formerly .chatmode.md — VS Code renamed
+#                                        # the extension when rebranding chat modes to
+#                                        # custom agents. chat.agentFilesLocations points
+#                                        # at the containing folder; invocation is via
+#                                        # the agents dropdown in Copilot Chat.
 #   profiles/<name>/AGENTS.md            # Copilot CLI (body only)
 #
 # Inputs: profile name(s) positional; --all iterates every profile under profiles/.
@@ -203,7 +208,7 @@ generate_profile() {
     copilot_description="$(yaml_scalar "$manifest" "description")"
   fi
 
-  local chatmode_out="$profile_dir/$profile.chatmode.md"
+  local chatmode_out="$profile_dir/$profile.agent.md"
   local agents_out="$profile_dir/AGENTS.md"
   local tmp_chatmode tmp_agents
   tmp_chatmode="$(mktemp)"

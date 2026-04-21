@@ -24,9 +24,9 @@ agent-toolbox/
 │       ├── project-context.md      # project-only: architecture, commands, rules
 │       ├── CLAUDE.md               # Claude Code entry point (@-imports)
 │       ├── AGENTS.md               # Copilot CLI entry (generated)
-│       └── frequencies.chatmode.md # Copilot VS Code chat mode (generated)
+│       └── frequencies.agent.md    # Copilot VS Code custom agent (generated)
 ├── scripts/
-│   └── generate-chatmode.sh        # regenerates AGENTS.md + <profile>.chatmode.md
+│   └── generate-chatmode.sh        # regenerates AGENTS.md + <profile>.agent.md
 ├── install.sh                      # per-profile activation across 3 surfaces
 └── README.md
 ```
@@ -75,7 +75,7 @@ description: Loads shared, stack, and project context for Frequencies Popscore.
 
 Copilot does not resolve imports, so each profile needs a flat artifact containing everything it references. `scripts/generate-chatmode.sh` composes them:
 
-- `profiles/<name>/<name>.chatmode.md` — Copilot VS Code chat mode with `description` / `tools` frontmatter, invoked via `@<name>` in Copilot chat.
+- `profiles/<name>/<name>.agent.md` — Copilot VS Code **custom agent** with `description` / `tools` frontmatter. After restarting VS Code, the agent appears in the Copilot Chat **agents dropdown** (it is no longer invoked via `@<name>` — that syntax was used for the older chat-mode API before VS Code rebranded them as custom agents and renamed the extension from `.chatmode.md` to `.agent.md`).
 - `profiles/<name>/AGENTS.md` — Copilot CLI entry (same body without frontmatter).
 
 Re-run after editing any referenced file:
@@ -104,7 +104,7 @@ Activates (or deactivates with `--uninstall`) a profile across up to three surfa
 | Surface | What `install.sh` does | Resolution order | Effect |
 |---|---|---|---|
 | `claude` | Writes a per-profile marker block `<!-- agent-toolbox:<profile>:begin/end -->` into `<config-dir>/CLAUDE.md` with an `@`-import to `profiles/<profile>/CLAUDE.md`. | `--config-dir` → `$CLAUDE_CONFIG_DIR` → `$HOME/.claude`. | Claude Code loads the profile automatically on every session. |
-| `copilot-vscode` | Adds the profile folder path to the `chat.agentFilesLocations` array in the VS Code user `settings.json`, deduped. Requires `jq`. | `--vscode-settings` → platform default (`$APPDATA/Code/User/settings.json` on Windows, `$HOME/Library/Application Support/Code/User/settings.json` on macOS, `$HOME/.config/Code/User/settings.json` on Linux). | After restarting VS Code, `@<profile>` appears as a custom agent in Copilot Chat and loads the generated chatmode. |
+| `copilot-vscode` | Adds the profile folder path to the `chat.agentFilesLocations` array in the VS Code user `settings.json`, deduped. Requires `jq`. | `--vscode-settings` → platform default (`$APPDATA/Code/User/settings.json` on Windows, `$HOME/Library/Application Support/Code/User/settings.json` on macOS, `$HOME/.config/Code/User/settings.json` on Linux). | After restarting VS Code, the custom agent appears in the Copilot Chat agents dropdown (type `/agents` to open the configure menu). |
 | `copilot-cli` | Default: prints a `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` export to stdout. With `--write-shell-rc <file>`: appends (or updates) a profile-scoped marker block in that rc file. | — | Copilot CLI picks up `profiles/<profile>/AGENTS.md` on the next shell. |
 
 ### Flags

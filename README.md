@@ -2,30 +2,38 @@
 
 Personal multi-profile agent toolbox shipped as an npm package. Installs guideline bundles into Claude Code, GitHub Copilot (VS Code + CLI), and OpenAI Codex — without leaving any agentic-config trace inside the target project repo.
 
-## Install / run
+## Install
 
-No clone required. From any machine with Node ≥ 20:
+### Global CLI (recommended for daily use)
+
+```bash
+git clone https://github.com/PrincyExaltIT/agent-toolbox.git
+cd agent-toolbox
+npm install
+npm install -g .
+```
+
+`agent-toolbox` is now on your `PATH` from any directory. Re-run `npm install -g .` after pulling updates in the clone.
+
+### One-shot via npx (no clone, no global)
 
 ```bash
 npx github:PrincyExaltIT/agent-toolbox install frequencies
 ```
 
-Interactive prompt asks which surfaces to activate. Pass flags to skip the prompt:
+Convenient for occasional use or a first try. Slower than the global install (npm re-downloads the tarball each invocation).
+
+### Usage
 
 ```bash
-npx github:PrincyExaltIT/agent-toolbox install frequencies --claude --copilot-vscode
-npx github:PrincyExaltIT/agent-toolbox install frequencies --all
-npx github:PrincyExaltIT/agent-toolbox install frequencies --all --dry-run
+agent-toolbox install frequencies                           # interactive surface picker
+agent-toolbox install frequencies --claude --copilot-vscode # non-interactive subset
+agent-toolbox install frequencies --all --dry-run           # preview
+agent-toolbox status
+agent-toolbox list
 ```
 
-For repeated use, install globally once:
-
-```bash
-npm install -g github:PrincyExaltIT/agent-toolbox
-agent-toolbox install frequencies
-```
-
-The prepare script builds TypeScript on install, so `dist/` is not committed to the repo.
+The compiled `dist/` is committed so installing does not require a build step on the target machine.
 
 ## Commands
 

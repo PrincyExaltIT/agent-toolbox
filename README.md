@@ -1,136 +1,117 @@
-# Agent Toolbox
+# agent-toolbox
 
-Personal multi-profile agent toolbox kept out of every project tree so projects stay free of agentic config. Ships profiles for specific projects (Frequencies Popscore is the first) and reusable guideline files grouped by topic (shared) and stack.
+Personal multi-profile agent toolbox shipped as an npm package. Installs guideline bundles into Claude Code, GitHub Copilot (VS Code + CLI), and OpenAI Codex — without leaving any agentic-config trace inside the target project repo.
+
+## Install / run
+
+No clone required. From any machine with Node ≥ 20:
+
+```bash
+npx github:PrincyExaltIT/agent-toolbox install frequencies
+```
+
+Interactive prompt asks which surfaces to activate. Pass flags to skip the prompt:
+
+```bash
+npx github:PrincyExaltIT/agent-toolbox install frequencies --claude --copilot-vscode
+npx github:PrincyExaltIT/agent-toolbox install frequencies --all
+npx github:PrincyExaltIT/agent-toolbox install frequencies --all --dry-run
+```
+
+For repeated use, install globally once:
+
+```bash
+npm install -g github:PrincyExaltIT/agent-toolbox
+agent-toolbox install frequencies
+```
+
+The prepare script builds TypeScript on install, so `dist/` is not committed to the repo.
+
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `install <profile> [--claude --copilot-vscode --copilot-cli --codex] [--all] [--uninstall] [--dry-run]` | Bootstrap (or remove) a profile on selected surfaces. Without any surface flag, a `@clack/prompts` checkbox asks. |
+| `switch <profile>` | Swap the currently-installed profile for this one on every surface another profile already occupies. |
+| `surface enable <surface> --profile <name>` / `surface disable <surface> --profile <name>` | Toggle one surface for one profile. |
+| `list` | Show every available profile (bundled + `~/.agent-toolbox/profiles/`). |
+| `status` | Print which surface of which profile is live, verified against the filesystem. |
+
+Options common to every install-style command:
+
+```
+--config-dir <dir>       override the Claude user config dir
+--vscode-settings <path> override the VS Code user settings.json path
+--codex-home <dir>       override the Codex home dir (default ~/.codex)
+--write-shell-rc <file>  materialize the Copilot CLI export in this shell rc
+--dry-run                preview without writing
+--yes                    skip the interactive prompt and install on every surface
+```
+
+## Surfaces
+
+| Surface | What gets written |
+|---|---|
+| `claude` | Per-profile marker block inside `$CLAUDE_CONFIG_DIR/CLAUDE.md` (or `$HOME/.claude/CLAUDE.md`), with an `@`-import pointing at `guidelines/profiles/<name>/CLAUDE.md`. |
+| `copilot-vscode` | A copy of the generated `<name>.agent.md` inside the VS Code user `prompts/` folder. The agent appears in the Copilot Chat agents picker (`Chat: Configure Custom Agents…`). |
+| `copilot-cli` | Prints (or writes into a shell rc with `--write-shell-rc`) `export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=…` pointing at the profile's generated `AGENTS.md`. |
+| `codex` | Symlinks (or copies if symlinks unavailable) `~/.codex/AGENTS.override.md` to the profile's generated `AGENTS.md`. The `.override.md` filename takes precedence over any existing `AGENTS.md` the user may already maintain. |
+
+Marker blocks and generated artifacts are namespaced per profile (`<!-- agent-toolbox:<name>:begin -->`, `# agent-toolbox:<name>:begin` for shell rc, `<!-- agent-toolbox:<name>:codex -->` for Codex copy), so multiple profiles coexist without collision.
 
 ## Layout
 
 ```
 agent-toolbox/
-├── shared/                         # Cross-stack, reusable
-│   ├── git-guidelines.md
-│   ├── testing-guidelines.md
-│   ├── unit-testing.instructions.md
-│   └── e2e-testing.instructions.md
-├── stacks/                         # Stack-specific, reusable across profiles
-│   ├── angular/
-│   │   ├── angular-coding-guidelines.md
-│   │   └── component-testing.instructions.md
-│   └── java-spring/
-│       ├── java-coding-guidelines.md
-│       └── backend-testing.instructions.md
-├── profiles/                       # One folder per project
-│   └── frequencies/
-│       ├── profile.yaml            # manifest: which shared / stacks / context files
-│       ├── project-context.md      # project-only: architecture, commands, rules
-│       ├── CLAUDE.md               # Claude Code entry point (@-imports)
-│       ├── AGENTS.md               # Copilot CLI entry (generated)
-│       └── frequencies.agent.md    # Copilot VS Code custom agent (generated)
-├── scripts/
-│   └── generate-chatmode.sh        # regenerates AGENTS.md + <profile>.agent.md
-├── install.sh                      # per-profile activation across 3 surfaces
-└── README.md
+├── src/                            # TypeScript sources
+├── guidelines/                     # bundled content
+│   ├── shared/                     # cross-stack (git, testing philosophy, …)
+│   ├── stacks/                     # per-stack (angular, java-spring, …)
+│   └── profiles/                   # bundled profiles (frequencies, …)
+└── package.json
 ```
 
-### Profile manifest
+User-authored extensions live under `~/.agent-toolbox/`:
 
-`profiles/<name>/profile.yaml` declares what the profile uses:
+```
+~/.agent-toolbox/
+├── profiles/<name>/                # your own profiles, override or complement bundled ones
+├── generated/<name>/               # regenerated artifacts used by copilot-vscode, copilot-cli, codex
+└── state.json                      # what this CLI installed, for status & switch
+```
 
-```yaml
-name: frequencies
-description: Frequencies Popscore — Angular 20 front + Spring Boot 3.5 back
+User profiles shadow bundled ones of the same name, and may reference bundled `shared/` and `stacks/` files.
+
+## Adding a new profile
+
+```bash
+mkdir -p ~/.agent-toolbox/profiles/my-csharp-app
+cat > ~/.agent-toolbox/profiles/my-csharp-app/profile.yaml <<'YAML'
+name: my-csharp-app
+description: My C# / .NET side project
 shared:
   - git-guidelines.md
   - testing-guidelines.md
   - unit-testing.instructions.md
-  - e2e-testing.instructions.md
 stacks:
-  - angular
-  - java-spring
+  - csharp-dotnet
 project_context: project-context.md
 copilot:
-  description: Frequencies Popscore agent (Angular + Spring, hexagonal)
-  tools: ['codebase', 'terminalLastCommand', 'problems']
+  description: My C# .NET agent
+YAML
+# Drop a project-context.md and a CLAUDE.md skeleton (@-imports) in the same dir.
+agent-toolbox install my-csharp-app
 ```
 
-Composition order used by the generator: `shared[]` → every `stacks/<stack>/*.md` (sorted) → `project_context`.
+If `stacks/csharp-dotnet/` doesn't exist bundled, add it under `~/.agent-toolbox/stacks/csharp-dotnet/` with the stack's guideline files.
 
-### Claude Code entry point
+## Why thin agents
 
-Hand-written `profiles/<name>/CLAUDE.md` uses Claude Code's native `@`-import syntax — no generation, the chain stays explicit and greppable:
+Copilot VS Code and Codex load the agent body eagerly when the agent is activated. Inlining every shared + stack + context file produced a 60+ KB body — a 20× context tax compared to Claude's lazy `@`-imports. The generator instead emits a **thin body** (~3 KB) containing a table that maps "scope hint → absolute path" and a rule block instructing the agent to `read` the matching file before acting. Same lazy-loading shape as Claude.
 
-```md
----
-name: Frequencies Popscore — Agent Entry Point
-description: Loads shared, stack, and project context for Frequencies Popscore.
----
+## Constraints and caveats
 
-# Frequencies Popscore — Agent Entry Point
-
-@../../shared/git-guidelines.md
-@../../stacks/angular/angular-coding-guidelines.md
-@./project-context.md
-```
-
-### Copilot artifacts (generated, gitignored)
-
-Copilot does not resolve imports the way Claude does, so each profile gets a flat artifact that tells Copilot which guideline files to read on demand via its read tool. `scripts/generate-chatmode.sh` emits:
-
-- `profiles/<name>/<name>.agent.md` — Copilot VS Code custom agent (frontmatter + a thin body listing the guidelines with their absolute paths). Appears in the Copilot Chat agents picker after a VS Code restart.
-- `profiles/<name>/AGENTS.md` — Copilot CLI entry (same body without frontmatter).
-
-Both files bake the machine-local toolbox path into their body, so they are **machine-specific** and **gitignored**. `install.sh` regenerates them automatically before deploying to a Copilot surface — no manual `generate-chatmode.sh` step is required in the install flow.
-
-Re-run after editing any referenced file:
-
-```bash
-./scripts/generate-chatmode.sh frequencies
-./scripts/generate-chatmode.sh --all
-```
-
-The generator is byte-stable across runs — two identical runs produce zero `git diff`.
-
-## Activation — `install.sh <profile>`
-
-Activates (or deactivates with `--uninstall`) a profile across up to three surfaces. All surfaces are idempotent; `--uninstall` removes only what this profile installed.
-
-```bash
-./install.sh frequencies                               # activate on every supported surface (default)
-./install.sh frequencies --uninstall                   # deactivate on every surface
-./install.sh frequencies --dry-run                     # preview
-./install.sh frequencies --surface claude              # only Claude Code
-./install.sh frequencies --surface claude,copilot-cli  # subset (comma-separated)
-```
-
-### Surface matrix
-
-| Surface | What `install.sh` does | Resolution order | Effect |
-|---|---|---|---|
-| `claude` | Writes a per-profile marker block `<!-- agent-toolbox:<profile>:begin/end -->` into `<config-dir>/CLAUDE.md` with an `@`-import to `profiles/<profile>/CLAUDE.md`. | `--config-dir` → `$CLAUDE_CONFIG_DIR` → `$HOME/.claude`. | Claude Code loads the profile automatically on every session. |
-| `copilot-vscode` | Copies `profiles/<profile>/<profile>.agent.md` into the VS Code user `prompts/` folder (sibling of `settings.json`). No `jq` required. | `--vscode-settings` → platform default (`$APPDATA/Code/User/settings.json` on Windows, `$HOME/Library/Application Support/Code/User/settings.json` on macOS, `$HOME/.config/Code/User/settings.json` on Linux); the prompts folder is derived from that path. | After restarting VS Code, the custom agent appears in the Copilot Chat agents picker. Open it via `Chat: Configure Custom Agents...` in the command palette. |
-| `copilot-cli` | Default: prints a `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` export to stdout. With `--write-shell-rc <file>`: appends (or updates) a profile-scoped marker block in that rc file. | — | Copilot CLI picks up `profiles/<profile>/AGENTS.md` on the next shell. |
-
-### Flags
-
-| Flag | Purpose |
-|---|---|
-| `--surface <which>` | `claude`, `copilot-vscode`, `copilot-cli`, or `all` (default). Comma-separated or repeated. |
-| `--uninstall` | Remove what this profile installed on the chosen surfaces. |
-| `--dry-run` | Print planned actions without writing. |
-| `--toolbox-path <dir>` | Toolbox root (default: script dir). |
-| `--config-dir <dir>` | Override the Claude user config dir. |
-| `--vscode-settings <path>` | Override the VS Code user `settings.json` location. |
-| `--write-shell-rc <file>` | Materialize the Copilot CLI env export in that rc file instead of printing to stdout. |
-
-Marker blocks are per-profile (`<!-- agent-toolbox:<profile>:... -->` for CLAUDE.md, `# agent-toolbox:<profile>:...` for shell rc files), so multiple profiles coexist without collision.
-
-### Caveats
-
-- **Copilot VS Code agents picker reads only from `prompts/`.** Absolute paths registered via `chat.agentFilesLocations` are not honoured in current VS Code versions, so `install.sh` copies the generated `.agent.md` into the prompts folder. After editing a referenced shared / stack / profile file, re-run the generator and the install to refresh the copy.
-- **Windows paths.** The script uses `cygpath -m` under Git Bash so paths written to config files are native (`C:/...`), not msys (`/c/...`).
-
-## Maintenance
-
-- Version-controlled. Commit messages follow `shared/git-guidelines.md`.
-- When a guideline is corrected during a session, update the single source (shared / stack / profile file) — never fork a local override. After editing anything under `shared/` or `stacks/<stack>/`, re-run the generator for every profile that pulls it in.
-- Upgrading a stack (Angular major, Spring Boot major) → update `stacks/<stack>/*.md` and regenerate chatmodes in the same change.
-- Adding a new profile: create `profiles/<name>/profile.yaml`, `profiles/<name>/project-context.md`, `profiles/<name>/CLAUDE.md` skeleton, optionally add a new `stacks/<stack>/` if introducing a new stack, then `./scripts/generate-chatmode.sh <name>` and `./install.sh <name>`.
+- **Node ≥ 20** required.
+- **Windows** is supported via forward-slash-normalised paths everywhere. Codex symlink may fall back to a plain copy if Developer Mode is off — the CLI handles the fallback transparently and reports which mode was used.
+- **Zero trace in the target project** — all writes are user-scope (Claude user config, VS Code user profile, Codex home, shell rc). The project repo stays clean.
+- Generated artifacts (`*.agent.md`, `AGENTS.md`) live under `~/.agent-toolbox/generated/` — never inside the package tree, never inside the target project.

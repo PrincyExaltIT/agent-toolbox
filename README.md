@@ -1,80 +1,97 @@
-# Agent Toolbox — Frequencies Popscore
+# Agent Toolbox
 
-Personal workflow for the Frequencies Popscore project (Angular 20 front + Spring Boot 3.5 back). Kept out of the project tree so the project stays free of agentic config.
+Personal multi-profile agent toolbox kept out of every project tree so projects stay free of agentic config. Ships profiles for specific projects (Frequencies Popscore is the first) and reusable guideline files across shared topics and stacks.
 
-## Contents
+> This README covers the **layout and per-profile authoring model**. The `install.sh` activation commands and full surface matrix (Claude Code / Copilot VS Code / Copilot CLI) land in a follow-up commit — for now, `./install.sh --help` still reflects the single-profile shape.
 
-| File | Purpose |
-|---|---|
-| `CLAUDE.md` | Entry point the agent loads first: architecture, commands, workflow rules |
-| `git-guidelines.md` | Branching, conventional commits, revert policy |
-| `angular-coding-guidelines.md` | Angular 20 + TypeScript conventions, hexagonal layout |
-| `java-coding-guidelines.md` | Java 21 + Spring Boot 3.5 conventions, hexagonal CQRS layout |
-| `testing-guidelines.md` | Cross-stack testing philosophy, tooling, TDD loop |
-| `testing/unit-testing.instructions.md` | Pure-logic unit tests (Vitest / JUnit) |
-| `testing/component-testing.instructions.md` | Angular component tests (Vitest + jsdom) |
-| `testing/e2e-testing.instructions.md` | Cypress + Cucumber + MSW |
-| `testing/backend-testing.instructions.md` | JUnit 5 + MockServer + Firestore emulator |
+## Layout
 
-## Activation
+```
+agent-toolbox/
+├── shared/                         # Cross-stack, reusable
+│   ├── git-guidelines.md
+│   ├── testing-guidelines.md
+│   ├── unit-testing.instructions.md
+│   └── e2e-testing.instructions.md
+├── stacks/                         # Stack-specific, reusable across profiles
+│   ├── angular/
+│   │   ├── angular-coding-guidelines.md
+│   │   └── component-testing.instructions.md
+│   └── java-spring/
+│       ├── java-coding-guidelines.md
+│       └── backend-testing.instructions.md
+├── profiles/                       # One folder per project
+│   └── frequencies/
+│       ├── profile.yaml            # manifest: which shared / stacks / context files
+│       ├── project-context.md      # project-only: architecture, commands, rules
+│       └── CLAUDE.md               # Claude Code entry point (@-imports)
+├── scripts/                        # Generators (chatmode + AGENTS)
+├── install.sh                      # per-profile activation
+└── README.md
+```
 
-The project directory must stay free of these files. The recommended path is to run the install script; manual options follow for reference.
+### Profile manifest
 
-### User-level Claude config dir
+Each profile declares what it uses in `profile.yaml`:
 
-Claude Code looks for the user-level `CLAUDE.md` under:
+```yaml
+name: frequencies
+description: Frequencies Popscore — Angular 20 front + Spring Boot 3.5 back
+shared:
+  - git-guidelines.md
+  - testing-guidelines.md
+  - unit-testing.instructions.md
+  - e2e-testing.instructions.md
+stacks:
+  - angular
+  - java-spring
+project_context: project-context.md
+copilot:
+  description: Frequencies Popscore agent (Angular + Spring, hexagonal)
+  tools: ['codebase', 'terminalLastCommand', 'problems']
+```
 
-1. `$CLAUDE_CONFIG_DIR` if the environment variable is set (this machine: `D:\.claude`)
-2. `$HOME/.claude` otherwise
+Composition order for anything that inlines the manifest: `shared[]` → every `stacks/<stack>/*.md` (sorted) → `project_context`.
 
-The install script resolves this automatically per machine.
+### Claude Code entry point — `profiles/<profile>/CLAUDE.md`
 
-### Option 1 — Install script (recommended)
+Hand-written, 10–15 lines. Uses Claude Code's `@`-import syntax, which Claude Code resolves natively at session start:
 
-From the toolbox checkout:
+```md
+---
+name: Frequencies Popscore — Agent Entry Point
+description: Loads shared, stack, and project context for Frequencies Popscore.
+---
+
+# Frequencies Popscore — Agent Entry Point
+
+@../../shared/git-guidelines.md
+@../../stacks/angular/angular-coding-guidelines.md
+@./project-context.md
+```
+
+No generation needed — the `@`-chain is the wiring.
+
+## Why shared / stacks / profiles
+
+- **shared/** — conventions that don't depend on a stack: git (conventional commits), testing philosophy, unit + E2E testing patterns. Authored once, referenced by every profile that opts in.
+- **stacks/** — stack-specific conventions: Angular idioms, Spring layout, C#/.NET rules. A profile that pairs Angular front with a Java back lists both; a pure C# profile lists only `csharp-dotnet`. Added stack-by-stack as new profiles appear.
+- **profiles/\<name\>/** — the only place project-specific content lives: architecture notes, commands, "what the agent must never do" for this project. Authoring a new profile = one manifest + one context file + one CLAUDE.md skeleton.
+
+The project repo itself stays free of all of the above.
+
+## Activation (transitional — full refresh in the next commit)
 
 ```bash
-./install.sh                         # enable (append / update in place)
-./install.sh --uninstall             # disable (remove the toolbox block)
-./install.sh --dry-run               # preview what would be written
-./install.sh --toolbox-path /path/to/other/checkout
-./install.sh --config-dir /custom/claude
+./install.sh                         # enable for Claude Code (current: Frequencies only)
+./install.sh --uninstall             # disable
+./install.sh --dry-run               # preview
 ```
 
-Switch on before a coding session on Frequencies, off when you move to unrelated work — keeps the global context clean without touching the project repo. Both flows are idempotent and safe to re-run.
-
-It appends (or updates in place) a marked block inside the user `CLAUDE.md`:
-
-```md
-<!-- agent-toolbox:begin -->
-@<abs-path-to>/agent-toolbox/CLAUDE.md
-<!-- agent-toolbox:end -->
-```
-
-The block is idempotent — re-running after moving the toolbox rewrites the path, it doesn't duplicate the import. Nested `@`-imports inside the toolbox's `CLAUDE.md` pull the guidelines in turn.
-
-Works on any machine: just clone the repo wherever, run `./install.sh`, done. The script reads the host's own `CLAUDE_CONFIG_DIR` / `$HOME`, so no machine-specific tweaks.
-
-### Option 2 — Manual `@`-import
-
-If you'd rather edit by hand, add this line to `<config-dir>/CLAUDE.md` (create the file if needed):
-
-```md
-@<absolute-path-to>/agent-toolbox/CLAUDE.md
-```
-
-Same result, without the idempotency / marker-block safety net.
-
-### Option 3 — Per-project memory pointer
-
-Claude Code reads memory from `<config-dir>/projects/<slugified-cwd>/memory/MEMORY.md`. Drop a pointer entry there if you want the toolbox to load only when working in a specific project, not globally. The agent follows the link the first time a task starts.
-
-### Option 4 — Frozen snapshot
-
-Copy the toolbox into `<config-dir>/projects/<project-slug>/workflow/` for a version-pinned snapshot per project. Tradeoff: the snapshot drifts from the upstream repo.
+The script writes a marker block into `$CLAUDE_CONFIG_DIR/CLAUDE.md` (default `$HOME/.claude/CLAUDE.md`) that `@`-imports the toolbox entry. After the next commit the command becomes `./install.sh <profile> [--surface ...]` for multi-profile + Copilot support.
 
 ## Maintenance
 
-- Version the toolbox with `git`. Commit messages follow the same conventional-commits rules the toolbox itself defines.
-- When a guideline gets corrected in a session, update the file here, not a local override. Single source of truth.
-- When the stack changes (Angular major bump, Spring Boot bump), update `angular-coding-guidelines.md` / `java-coding-guidelines.md` in the same PR that upgrades the project.
+- Version-controlled. Commit messages follow `shared/git-guidelines.md` — which the toolbox itself also applies to commits inside this repo.
+- When a guideline gets corrected during a session, update the single source (shared / stack / profile file) — never fork a local override.
+- Upgrading a stack (Angular major, Spring Boot major) → update `stacks/<stack>/*.md` in the same window as the project upgrade.

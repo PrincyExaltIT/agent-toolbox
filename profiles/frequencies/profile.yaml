@@ -1,0 +1,14 @@
+name: frequencies
+description: Frequencies Popscore — Angular 20 front + Spring Boot 3.5 back
+shared:
+  - git-guidelines.md
+  - testing-guidelines.md
+  - unit-testing.instructions.md
+  - e2e-testing.instructions.md
+stacks:
+  - angular
+  - java-spring
+project_context: project-context.md
+copilot:
+  description: Frequencies Popscore agent (Angular + Spring, hexagonal)
+  tools: ['codebase', 'terminalLastCommand', 'problems']

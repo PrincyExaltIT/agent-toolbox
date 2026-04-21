@@ -1,11 +1,11 @@
 ---
-name: Frequencies Popscore — Agent Entry Point
-description: Architecture, commands, and workflow rules the agent loads first for any task on the Frequencies Popscore project.
+name: Frequencies Popscore — Project Context
+description: Architecture, commands, and project-specific agent rules for the Frequencies Popscore project. Loaded into the Frequencies profile entry point.
 ---
 
-# Frequencies Popscore — Agent Entry Point
+# Frequencies Popscore — Project Context
 
-This is the primary context file. Load it at the start of every task on the Frequencies Popscore project. It points at the focused guideline files — open those as soon as the task touches their scope.
+Project-specific context for Frequencies Popscore. The shared and stack guidelines are loaded separately via the profile entry point (`CLAUDE.md`) and the Copilot generated artifacts — this file holds only what is unique to this project.
 
 ## Stack at a glance
 
@@ -72,24 +72,6 @@ npm run cypress          # open Cypress + start dev server
 ```
 
 Always run the relevant test suite before declaring a task finished. Don't declare success when you haven't actually executed the tests.
-
-## Guideline files
-
-Load the specific guideline as soon as the task enters its scope.
-
-| When the task involves... | Load this file |
-|---|---|
-| Creating commits, branches, PRs | `git-guidelines.md` |
-| Writing or reviewing Angular / TypeScript code | `angular-coding-guidelines.md` |
-| Writing or reviewing Java / Spring code | `java-coding-guidelines.md` |
-| Writing or reviewing tests (any layer) | `testing-guidelines.md` (then the per-layer file) |
-
-The per-layer testing instructions live under `testing/`:
-
-- `testing/unit-testing.instructions.md` — pure-logic unit tests
-- `testing/component-testing.instructions.md` — Angular component tests
-- `testing/e2e-testing.instructions.md` — Cypress + Cucumber + MSW
-- `testing/backend-testing.instructions.md` — JUnit 5 + MockServer + emulator
 
 ## Agent workflow rules
 

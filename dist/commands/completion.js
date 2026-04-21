@@ -1,7 +1,7 @@
 import omelette from 'omelette';
 import kleur from 'kleur';
 import { listProfiles } from '../profiles.js';
-const BIN_NAMES = ['at', 'agent-toolbox'];
+const BIN_NAMES = ['atb', 'agent-toolbox'];
 const COMMANDS = ['install', 'uninstall', 'switch', 'surface', 'list', 'status', 'new', 'completion'];
 const SURFACES = ['claude', 'copilot-vs', 'copilot-cli', 'codex'];
 const SURFACE_SUBCOMMANDS = ['enable', 'disable'];

@@ -59,22 +59,22 @@ When the package graduates from private:
 
 ### Usage
 
-Two binaries are installed: the long-form `agent-toolbox` and the short alias `at`. The rest of this README uses `at`.
+Two binaries are installed: the long-form `agent-toolbox` and the short alias `atb`. The rest of this README uses `atb`.
 
 ```bash
-at                                              # dashboard: installed profiles + available + command hints
-at install frequencies                          # interactive surface picker
-at install frequencies -c -v                    # short flags (claude + copilot-vs)
-at install frequencies -s c,vs,cli              # CSV shortcut — same result
-at install frequencies --all --dry-run          # preview
-at uninstall frequencies --codex                # remove one surface
-at new my-csharp-app                            # scaffold a new profile (wizard)
-at switch frequencies
-at surface enable copilot-cli --profile frequencies
-at list
-at status
-at status --json | jq .                         # machine-readable output
-at completion install                           # hook tab-completion into your shell
+atb                                              # dashboard: installed profiles + available + command hints
+atb install frequencies                          # interactive surface picker
+atb install frequencies -c -v                    # short flags (claude + copilot-vs)
+atb install frequencies -s c,vs,cli              # CSV shortcut — same result
+atb install frequencies --all --dry-run          # preview
+atb uninstall frequencies --codex                # remove one surface
+atb new my-csharp-app                            # scaffold a new profile (wizard)
+atb switch frequencies
+atb surface enable copilot-cli --profile frequencies
+atb list
+atb status
+atb status --json | jq .                         # machine-readable output
+atb completion install                           # hook tab-completion into your shell
 ```
 
 The compiled `dist/` is committed so installing does not require a build step on the target machine.
@@ -104,7 +104,7 @@ All install / uninstall / switch / surface commands accept:
 | `--codex` | `-x` | `x` or `codex` |
 | `--all` | — | `all` |
 
-`--surfaces <csv>` (`-s`) combines any subset, e.g. `at install freq -s c,vs,cli`. Mix-and-match with the individual flags — they all merge into one set.
+`--surfaces <csv>` (`-s`) combines any subset, e.g. `atb install freq -s c,vs,cli`. Mix-and-match with the individual flags — they all merge into one set.
 
 ### Options common to every install-style command
 
@@ -117,7 +117,7 @@ All install / uninstall / switch / surface commands accept:
 --write-shell-rc <file>  materialize the Copilot CLI export in this shell rc
 ```
 
-`at uninstall <profile> --codex` is the first-class way to remove one surface; `at surface disable codex --profile <name>` is a synonym.
+`atb uninstall <profile> --codex` is the first-class way to remove one surface; `atb surface disable codex --profile <name>` is a synonym.
 
 ## Surfaces
 

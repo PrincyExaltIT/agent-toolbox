@@ -1,8 +1,6 @@
 # Agent Toolbox
 
-Personal multi-profile agent toolbox kept out of every project tree so projects stay free of agentic config. Ships profiles for specific projects (Frequencies Popscore is the first) and reusable guideline files across shared topics and stacks.
-
-> This README covers the **layout and per-profile authoring model**. The `install.sh` activation commands and full surface matrix (Claude Code / Copilot VS Code / Copilot CLI) land in a follow-up commit — for now, `./install.sh --help` still reflects the single-profile shape.
+Personal multi-profile agent toolbox kept out of every project tree so projects stay free of agentic config. Ships profiles for specific projects (Frequencies Popscore is the first) and reusable guideline files grouped by topic (shared) and stack.
 
 ## Layout
 
@@ -24,15 +22,18 @@ agent-toolbox/
 │   └── frequencies/
 │       ├── profile.yaml            # manifest: which shared / stacks / context files
 │       ├── project-context.md      # project-only: architecture, commands, rules
-│       └── CLAUDE.md               # Claude Code entry point (@-imports)
-├── scripts/                        # Generators (chatmode + AGENTS)
-├── install.sh                      # per-profile activation
+│       ├── CLAUDE.md               # Claude Code entry point (@-imports)
+│       ├── AGENTS.md               # Copilot CLI entry (generated)
+│       └── frequencies.chatmode.md # Copilot VS Code chat mode (generated)
+├── scripts/
+│   └── generate-chatmode.sh        # regenerates AGENTS.md + <profile>.chatmode.md
+├── install.sh                      # per-profile activation across 3 surfaces
 └── README.md
 ```
 
 ### Profile manifest
 
-Each profile declares what it uses in `profile.yaml`:
+`profiles/<name>/profile.yaml` declares what the profile uses:
 
 ```yaml
 name: frequencies
@@ -51,11 +52,11 @@ copilot:
   tools: ['codebase', 'terminalLastCommand', 'problems']
 ```
 
-Composition order for anything that inlines the manifest: `shared[]` → every `stacks/<stack>/*.md` (sorted) → `project_context`.
+Composition order used by the generator: `shared[]` → every `stacks/<stack>/*.md` (sorted) → `project_context`.
 
-### Claude Code entry point — `profiles/<profile>/CLAUDE.md`
+### Claude Code entry point
 
-Hand-written, 10–15 lines. Uses Claude Code's `@`-import syntax, which Claude Code resolves natively at session start:
+Hand-written `profiles/<name>/CLAUDE.md` uses Claude Code's native `@`-import syntax — no generation, the chain stays explicit and greppable:
 
 ```md
 ---
@@ -70,28 +71,65 @@ description: Loads shared, stack, and project context for Frequencies Popscore.
 @./project-context.md
 ```
 
-No generation needed — the `@`-chain is the wiring.
+### Copilot artifacts (generated)
 
-## Why shared / stacks / profiles
+Copilot does not resolve imports, so each profile needs a flat artifact containing everything it references. `scripts/generate-chatmode.sh` composes them:
 
-- **shared/** — conventions that don't depend on a stack: git (conventional commits), testing philosophy, unit + E2E testing patterns. Authored once, referenced by every profile that opts in.
-- **stacks/** — stack-specific conventions: Angular idioms, Spring layout, C#/.NET rules. A profile that pairs Angular front with a Java back lists both; a pure C# profile lists only `csharp-dotnet`. Added stack-by-stack as new profiles appear.
-- **profiles/\<name\>/** — the only place project-specific content lives: architecture notes, commands, "what the agent must never do" for this project. Authoring a new profile = one manifest + one context file + one CLAUDE.md skeleton.
+- `profiles/<name>/<name>.chatmode.md` — Copilot VS Code chat mode with `description` / `tools` frontmatter, invoked via `@<name>` in Copilot chat.
+- `profiles/<name>/AGENTS.md` — Copilot CLI entry (same body without frontmatter).
 
-The project repo itself stays free of all of the above.
-
-## Activation (transitional — full refresh in the next commit)
+Re-run after editing any referenced file:
 
 ```bash
-./install.sh                         # enable for Claude Code (current: Frequencies only)
-./install.sh --uninstall             # disable
-./install.sh --dry-run               # preview
+./scripts/generate-chatmode.sh frequencies
+./scripts/generate-chatmode.sh --all
 ```
 
-The script writes a marker block into `$CLAUDE_CONFIG_DIR/CLAUDE.md` (default `$HOME/.claude/CLAUDE.md`) that `@`-imports the toolbox entry. After the next commit the command becomes `./install.sh <profile> [--surface ...]` for multi-profile + Copilot support.
+The generator is byte-stable across runs — two identical runs produce zero `git diff`.
+
+## Activation — `install.sh <profile>`
+
+Activates (or deactivates with `--uninstall`) a profile across up to three surfaces. All surfaces are idempotent; `--uninstall` removes only what this profile installed.
+
+```bash
+./install.sh frequencies                               # activate on every supported surface (default)
+./install.sh frequencies --uninstall                   # deactivate on every surface
+./install.sh frequencies --dry-run                     # preview
+./install.sh frequencies --surface claude              # only Claude Code
+./install.sh frequencies --surface claude,copilot-cli  # subset (comma-separated)
+```
+
+### Surface matrix
+
+| Surface | What `install.sh` does | Resolution order | Effect |
+|---|---|---|---|
+| `claude` | Writes a per-profile marker block `<!-- agent-toolbox:<profile>:begin/end -->` into `<config-dir>/CLAUDE.md` with an `@`-import to `profiles/<profile>/CLAUDE.md`. | `--config-dir` → `$CLAUDE_CONFIG_DIR` → `$HOME/.claude`. | Claude Code loads the profile automatically on every session. |
+| `copilot-vscode` | Adds the profile folder path to the `chat.agentFilesLocations` array in the VS Code user `settings.json`, deduped. Requires `jq`. | `--vscode-settings` → platform default (`$APPDATA/Code/User/settings.json` on Windows, `$HOME/Library/Application Support/Code/User/settings.json` on macOS, `$HOME/.config/Code/User/settings.json` on Linux). | After restarting VS Code, `@<profile>` appears as a custom agent in Copilot Chat and loads the generated chatmode. |
+| `copilot-cli` | Default: prints a `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` export to stdout. With `--write-shell-rc <file>`: appends (or updates) a profile-scoped marker block in that rc file. | — | Copilot CLI picks up `profiles/<profile>/AGENTS.md` on the next shell. |
+
+### Flags
+
+| Flag | Purpose |
+|---|---|
+| `--surface <which>` | `claude`, `copilot-vscode`, `copilot-cli`, or `all` (default). Comma-separated or repeated. |
+| `--uninstall` | Remove what this profile installed on the chosen surfaces. |
+| `--dry-run` | Print planned actions without writing. |
+| `--toolbox-path <dir>` | Toolbox root (default: script dir). |
+| `--config-dir <dir>` | Override the Claude user config dir. |
+| `--vscode-settings <path>` | Override the VS Code user `settings.json` location. |
+| `--write-shell-rc <file>` | Materialize the Copilot CLI env export in that rc file instead of printing to stdout. |
+
+Marker blocks are per-profile (`<!-- agent-toolbox:<profile>:... -->` for CLAUDE.md, `# agent-toolbox:<profile>:...` for shell rc files), so multiple profiles coexist without collision.
+
+### Caveats
+
+- **JSONC comments in VS Code settings.** `jq` doesn't parse JSONC; if the user `settings.json` contains `//` comments, the script surfaces a clear error with a manual-edit fallback (VS Code → Preferences: Open User Settings (JSON)).
+- **Requires jq** for the `copilot-vscode` surface. Dry-run still works without it and warns.
+- **Windows paths.** The script uses `cygpath -m` under Git Bash so paths written to config files are native (`C:/...`), not msys (`/c/...`).
 
 ## Maintenance
 
-- Version-controlled. Commit messages follow `shared/git-guidelines.md` — which the toolbox itself also applies to commits inside this repo.
-- When a guideline gets corrected during a session, update the single source (shared / stack / profile file) — never fork a local override.
-- Upgrading a stack (Angular major, Spring Boot major) → update `stacks/<stack>/*.md` in the same window as the project upgrade.
+- Version-controlled. Commit messages follow `shared/git-guidelines.md`.
+- When a guideline is corrected during a session, update the single source (shared / stack / profile file) — never fork a local override. After editing anything under `shared/` or `stacks/<stack>/`, re-run the generator for every profile that pulls it in.
+- Upgrading a stack (Angular major, Spring Boot major) → update `stacks/<stack>/*.md` and regenerate chatmodes in the same change.
+- Adding a new profile: create `profiles/<name>/profile.yaml`, `profiles/<name>/project-context.md`, `profiles/<name>/CLAUDE.md` skeleton, optionally add a new `stacks/<stack>/` if introducing a new stack, then `./scripts/generate-chatmode.sh <name>` and `./install.sh <name>`.

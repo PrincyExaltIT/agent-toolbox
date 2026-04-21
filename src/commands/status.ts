@@ -6,7 +6,7 @@ import {
   claudeUserMd,
   vscodePromptsDir,
   codexHome,
-  userGeneratedRoot,
+  generatedRoot,
 } from '../paths.js';
 
 const ALL: SurfaceName[] = ['claude', 'copilot-vscode', 'copilot-cli', 'codex'];
@@ -73,7 +73,7 @@ function inspect(surface: SurfaceName, profile: string): { ok: boolean; detail: 
         : { ok: false, detail: `${file} missing` };
     }
     case 'copilot-cli': {
-      const expected = path.join(userGeneratedRoot(), profile).split(path.sep).join('/');
+      const expected = path.join(generatedRoot(), profile).split(path.sep).join('/');
       const envVal = process.env.COPILOT_CUSTOM_INSTRUCTIONS_DIRS ?? '';
       if (envVal.split(/[;:]/).some((p) => p === expected)) {
         return { ok: true, detail: `env points at ${expected}` };

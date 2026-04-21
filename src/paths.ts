@@ -1,76 +1,87 @@
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolveContentRoot, configDir } from './config.js';
 
 /**
  * Path resolution for every per-user and per-platform location the CLI touches.
- * All returned paths use forward slashes (via path.posix-friendly normalisation)
- * so Windows paths come out as "C:/Users/..." which is the form Claude Code and
- * VS Code agent-file bodies expect.
+ * Content (profiles, stacks, shared) lives under contentRoot() which the user
+ * configures explicitly. CLI state (config.json, state.json, generated
+ * artifacts) lives under configDir() which is invariant (~/.agent-toolbox/).
+ * All returned paths use forward slashes so Windows paths come out as
+ * "C:/Users/..." — the form Claude Code and VS Code agent-file bodies expect.
  */
 
-const here = path.dirname(fileURLToPath(import.meta.url));
+export { configDir } from './config.js';
 
-export function packageRoot(): string {
-  // dist/paths.js -> dist -> <pkg>
-  return normalize(path.resolve(here, '..'));
+export function contentRoot(rootFlag?: string): string {
+  return resolveContentRoot(rootFlag);
 }
 
-export function bundledGuidelinesRoot(): string {
-  return normalize(path.join(packageRoot(), 'guidelines'));
+export function profilesRoot(rootFlag?: string): string {
+  return join(contentRoot(rootFlag), 'profiles');
 }
 
-export function userToolboxRoot(): string {
-  return normalize(path.join(os.homedir(), '.agent-toolbox'));
+export function stacksRoot(rootFlag?: string): string {
+  return join(contentRoot(rootFlag), 'stacks');
 }
 
-export function userProfilesRoot(): string {
-  return normalize(path.join(userToolboxRoot(), 'profiles'));
+export function sharedRoot(rootFlag?: string): string {
+  return join(contentRoot(rootFlag), 'shared');
 }
 
-export function userGeneratedRoot(): string {
-  return normalize(path.join(userToolboxRoot(), 'generated'));
+/**
+ * Regenerated Copilot / Codex artifacts live under the CLI state dir so they
+ * do not pollute the user's content tree. The paths in their bodies still
+ * point inside contentRoot() for the actual guideline reads.
+ */
+export function generatedRoot(): string {
+  return join(configDir(), 'generated');
 }
 
-export function userStateFile(): string {
-  return normalize(path.join(userToolboxRoot(), 'state.json'));
+export function stateFile(): string {
+  return join(configDir(), 'state.json');
 }
 
 export function claudeConfigDir(override?: string): string {
-  if (override) return normalize(override);
-  if (process.env.CLAUDE_CONFIG_DIR) return normalize(process.env.CLAUDE_CONFIG_DIR);
-  return normalize(path.join(os.homedir(), '.claude'));
+  if (override) return normalise(override);
+  if (process.env.CLAUDE_CONFIG_DIR) return normalise(process.env.CLAUDE_CONFIG_DIR);
+  return join(os.homedir(), '.claude');
 }
 
 export function claudeUserMd(override?: string): string {
-  return normalize(path.join(claudeConfigDir(override), 'CLAUDE.md'));
+  return join(claudeConfigDir(override), 'CLAUDE.md');
 }
 
 export function vscodeUserDir(settingsOverride?: string): string {
-  if (settingsOverride) return normalize(path.dirname(settingsOverride));
+  if (settingsOverride) return normalise(path.dirname(settingsOverride));
   switch (process.platform) {
     case 'win32':
-      return normalize(path.join(process.env.APPDATA ?? path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User'));
+      return join(
+        process.env.APPDATA ?? path.join(os.homedir(), 'AppData', 'Roaming'),
+        'Code',
+        'User'
+      );
     case 'darwin':
-      return normalize(path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User'));
+      return join(os.homedir(), 'Library', 'Application Support', 'Code', 'User');
     default:
-      return normalize(path.join(os.homedir(), '.config', 'Code', 'User'));
+      return join(os.homedir(), '.config', 'Code', 'User');
   }
 }
 
 export function vscodePromptsDir(settingsOverride?: string): string {
-  return normalize(path.join(vscodeUserDir(settingsOverride), 'prompts'));
+  return join(vscodeUserDir(settingsOverride), 'prompts');
 }
 
 export function codexHome(override?: string): string {
-  if (override) return normalize(override);
-  if (process.env.CODEX_HOME) return normalize(process.env.CODEX_HOME);
-  return normalize(path.join(os.homedir(), '.codex'));
+  if (override) return normalise(override);
+  if (process.env.CODEX_HOME) return normalise(process.env.CODEX_HOME);
+  return join(os.homedir(), '.codex');
 }
 
-function normalize(p: string): string {
-  // Use forward slashes regardless of platform so paths emitted into agent
-  // bodies resolve under Node on every host and stay readable on Windows
-  // (C:/... is what Claude Code and VS Code expect, not C:\...).
+function join(...parts: string[]): string {
+  return normalise(path.join(...parts));
+}
+
+function normalise(p: string): string {
   return p.split(path.sep).join('/');
 }

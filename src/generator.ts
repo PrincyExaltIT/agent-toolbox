@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 import { ProfileSource, resolveShared, resolveStack } from './profiles.js';
-import { userGeneratedRoot } from './paths.js';
+import { generatedRoot } from './paths.js';
 
 export interface GeneratedArtifacts {
   agentMd: string;
@@ -21,7 +21,7 @@ export interface GeneratedArtifacts {
  * where the CLI package itself was installed.
  */
 export function generate(profile: ProfileSource): GeneratedArtifacts {
-  const outDir = path.join(userGeneratedRoot(), profile.name);
+  const outDir = path.join(generatedRoot(), profile.name);
   fs.mkdirSync(outDir, { recursive: true });
 
   const body = composeBody(profile);

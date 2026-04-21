@@ -44,8 +44,7 @@ export function showDashboard(): boolean {
   if (profiles.length > 0) {
     console.log(kleur.bold('Available profiles:'));
     for (const p of profiles) {
-      const origin = p.origin === 'user' ? kleur.yellow('user') : kleur.cyan('bundled');
-      console.log(`  ${p.name.padEnd(20)} ${origin.padEnd(7)} ${kleur.gray(p.manifest.description ?? '')}`);
+      console.log(`  ${p.name.padEnd(20)} ${kleur.gray(p.manifest.description ?? '')}`);
     }
     console.log();
   }

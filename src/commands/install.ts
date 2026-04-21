@@ -78,7 +78,7 @@ export async function install(profileName: string, opts: InstallOptions): Promis
     return;
   }
 
-  p.intro(kleur.bold(`${opts.uninstall ? 'Uninstall' : 'Install'} ${profile.name} (${profile.origin})`));
+  p.intro(kleur.bold(`${opts.uninstall ? 'Uninstall' : 'Install'} ${profile.name}`));
   p.log.info(`Surfaces: ${surfaces.join(', ')}${opts.dryRun ? ' (dry-run)' : ''}`);
 
   let artifacts: GeneratedArtifacts | undefined;

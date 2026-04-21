@@ -13,6 +13,8 @@ import { showDashboard } from './commands/default.js';
 import { newProfile } from './commands/new.js';
 import { installCompletion, uninstallCompletion, runCompletionHook, } from './commands/completion.js';
 import { off, on } from './commands/toggle.js';
+import { configInit, configGet, configSet, configPath, configShow, } from './commands/config.js';
+import { ContentRootNotConfiguredError } from './config.js';
 // Completion must run before commander parses anything — omelette short-circuits
 // the process when the shell is asking for suggestions.
 runCompletionHook();
@@ -120,6 +122,45 @@ program
     .action((opts) => {
     status(opts);
 });
+const configCmd = program
+    .command('config')
+    .description('Manage the CLI config (content root, etc.)');
+configCmd
+    .command('init')
+    .description('Set the content root and optionally import an existing tree')
+    .option('--root <path>', 'absolute path for your toolbox content')
+    .option('--from-path <src>', 'copy profiles/stacks/shared from this directory into the new root')
+    .option('--yes', 'skip prompts and use defaults / passed flags')
+    .action(async (opts) => {
+    await configInit(opts);
+});
+configCmd
+    .command('get')
+    .argument('<key>', 'config key (currently only: root)')
+    .description('Print a config value')
+    .action((key) => {
+    configGet(key);
+});
+configCmd
+    .command('set')
+    .argument('<key>', 'config key (currently only: root)')
+    .argument('<value>', 'new value')
+    .description('Persist a config value')
+    .action((key, value) => {
+    configSet(key, value);
+});
+configCmd
+    .command('path')
+    .description('Print the path to the config file')
+    .action(() => {
+    configPath();
+});
+configCmd
+    .command('show')
+    .description('Dump the contents of the config file')
+    .action(() => {
+    configShow();
+});
 const completionCmd = program
     .command('completion')
     .description('Install or uninstall shell tab-completion');
@@ -144,6 +185,11 @@ if (process.argv.length === 2) {
     process.exit(0);
 }
 program.parseAsync(process.argv).catch((err) => {
+    if (err instanceof ContentRootNotConfiguredError) {
+        console.error(err.message);
+        console.error('→ Start with `atb config init`.');
+        process.exit(1);
+    }
     console.error(err instanceof Error ? err.message : err);
     process.exit(1);
 });

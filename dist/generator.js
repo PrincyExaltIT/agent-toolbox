@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 import { resolveShared, resolveStack } from './profiles.js';
-import { userGeneratedRoot } from './paths.js';
+import { generatedRoot } from './paths.js';
 /**
  * Generate the thin VS Code agent body + Copilot CLI AGENTS.md for a profile.
  * "Thin" means we do not inline the shared/stack/context content — we emit a
@@ -15,7 +15,7 @@ import { userGeneratedRoot } from './paths.js';
  * where the CLI package itself was installed.
  */
 export function generate(profile) {
-    const outDir = path.join(userGeneratedRoot(), profile.name);
+    const outDir = path.join(generatedRoot(), profile.name);
     fs.mkdirSync(outDir, { recursive: true });
     const body = composeBody(profile);
     const frontmatter = composeFrontmatter(profile);

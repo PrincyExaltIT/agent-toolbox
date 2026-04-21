@@ -1,7 +1,7 @@
 import fs from 'node:fs';
-import { userStateFile, userToolboxRoot } from './paths.js';
+import { stateFile, configDir } from './paths.js';
 export function readState() {
-    const file = userStateFile();
+    const file = stateFile();
     if (!fs.existsSync(file))
         return { profiles: {} };
     try {
@@ -16,8 +16,8 @@ export function readState() {
     return { profiles: {} };
 }
 export function writeState(state) {
-    fs.mkdirSync(userToolboxRoot(), { recursive: true });
-    fs.writeFileSync(userStateFile(), JSON.stringify(state, null, 2) + '\n', 'utf8');
+    fs.mkdirSync(configDir(), { recursive: true });
+    fs.writeFileSync(stateFile(), JSON.stringify(state, null, 2) + '\n', 'utf8');
 }
 export function recordInstall(profile, surface, detail) {
     const state = readState();

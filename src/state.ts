@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { userStateFile, userToolboxRoot } from './paths.js';
+import { stateFile, configDir } from './paths.js';
 
 export type SurfaceName = 'claude' | 'copilot-vscode' | 'copilot-cli' | 'codex';
 
@@ -19,7 +19,7 @@ export interface ToolboxState {
 }
 
 export function readState(): ToolboxState {
-  const file = userStateFile();
+  const file = stateFile();
   if (!fs.existsSync(file)) return { profiles: {} };
   try {
     const raw = fs.readFileSync(file, 'utf8');
@@ -32,8 +32,8 @@ export function readState(): ToolboxState {
 }
 
 export function writeState(state: ToolboxState): void {
-  fs.mkdirSync(userToolboxRoot(), { recursive: true });
-  fs.writeFileSync(userStateFile(), JSON.stringify(state, null, 2) + '\n', 'utf8');
+  fs.mkdirSync(configDir(), { recursive: true });
+  fs.writeFileSync(stateFile(), JSON.stringify(state, null, 2) + '\n', 'utf8');
 }
 
 export function recordInstall(profile: string, surface: SurfaceName, detail: string): void {

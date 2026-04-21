@@ -13,7 +13,6 @@ export function list(opts: ListOptions = {}): void {
       JSON.stringify(
         profiles.map((p) => ({
           name: p.name,
-          origin: p.origin,
           description: p.manifest.description ?? null,
           dir: p.dir.split('\\').join('/'),
         })),
@@ -29,9 +28,8 @@ export function list(opts: ListOptions = {}): void {
     return;
   }
   for (const p of profiles) {
-    const origin = p.origin === 'user' ? kleur.yellow('user') : kleur.cyan('bundled');
     const description = p.manifest.description ?? '';
-    console.log(`${kleur.bold(p.name.padEnd(20))} ${origin.padEnd(7)} ${kleur.gray(description)}`);
-    console.log(`${' '.repeat(28)}${kleur.gray(p.dir)}`);
+    console.log(`${kleur.bold(p.name.padEnd(20))} ${kleur.gray(description)}`);
+    console.log(`${' '.repeat(21)}${kleur.gray(p.dir)}`);
   }
 }

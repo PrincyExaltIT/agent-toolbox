@@ -40,7 +40,7 @@ export async function install(profileName, opts) {
         p.log.warn('No surfaces selected — nothing to do.');
         return;
     }
-    p.intro(kleur.bold(`${opts.uninstall ? 'Uninstall' : 'Install'} ${profile.name} (${profile.origin})`));
+    p.intro(kleur.bold(`${opts.uninstall ? 'Uninstall' : 'Install'} ${profile.name}`));
     p.log.info(`Surfaces: ${surfaces.join(', ')}${opts.dryRun ? ' (dry-run)' : ''}`);
     let artifacts;
     if (!opts.uninstall && surfaces.some((s) => s === 'copilot-vscode' || s === 'copilot-cli' || s === 'codex')) {

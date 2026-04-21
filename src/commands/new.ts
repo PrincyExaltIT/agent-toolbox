@@ -3,7 +3,7 @@ import path from 'node:path';
 import kleur from 'kleur';
 import * as p from '@clack/prompts';
 import { listSharedGuidelines, listStacks } from '../profiles.js';
-import { userProfilesRoot } from '../paths.js';
+import { profilesRoot } from '../paths.js';
 import {
   renderProfileYaml,
   renderProjectContext,
@@ -25,7 +25,7 @@ export interface NewOptions {
  * shared files and stacks). Never touches the bundled tree.
  */
 export async function newProfile(name: string, opts: NewOptions): Promise<void> {
-  const dir = path.join(userProfilesRoot(), name);
+  const dir = path.join(profilesRoot(), name);
   if (fs.existsSync(dir)) {
     throw new Error(`Profile "${name}" already exists at ${dir}`);
   }
@@ -61,7 +61,7 @@ export async function newProfile(name: string, opts: NewOptions): Promise<void> 
         message: 'Which shared guidelines?',
         options: shared.map((s) => ({
           value: s.file,
-          label: `${s.file}${s.origin === 'user' ? ' (user)' : ''}`,
+          label: s.file,
           hint: s.description?.slice(0, 80) ?? '',
         })),
         initialValues: shared.map((s) => s.file),
@@ -76,7 +76,7 @@ export async function newProfile(name: string, opts: NewOptions): Promise<void> 
         message: 'Which stacks?',
         options: stacks.map((st) => ({
           value: st.name,
-          label: `${st.name}${st.origin === 'user' ? ' (user)' : ''}`,
+          label: st.name,
         })),
         initialValues: [],
         required: false,

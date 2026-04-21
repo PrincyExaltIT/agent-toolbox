@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import kleur from 'kleur';
 import { readState } from '../state.js';
-import { claudeUserMd, vscodePromptsDir, codexHome, userGeneratedRoot, } from '../paths.js';
+import { claudeUserMd, vscodePromptsDir, codexHome, generatedRoot, } from '../paths.js';
 const ALL = ['claude', 'copilot-vscode', 'copilot-cli', 'codex'];
 export function status(opts = {}) {
     const state = readState();
@@ -59,7 +59,7 @@ function inspect(surface, profile) {
                 : { ok: false, detail: `${file} missing` };
         }
         case 'copilot-cli': {
-            const expected = path.join(userGeneratedRoot(), profile).split(path.sep).join('/');
+            const expected = path.join(generatedRoot(), profile).split(path.sep).join('/');
             const envVal = process.env.COPILOT_CUSTOM_INSTRUCTIONS_DIRS ?? '';
             if (envVal.split(/[;:]/).some((p) => p === expected)) {
                 return { ok: true, detail: `env points at ${expected}` };

@@ -1,7 +1,16 @@
 import kleur from 'kleur';
 import { listProfiles } from '../profiles.js';
-export function list() {
+export function list(opts = {}) {
     const profiles = listProfiles();
+    if (opts.json) {
+        console.log(JSON.stringify(profiles.map((p) => ({
+            name: p.name,
+            origin: p.origin,
+            description: p.manifest.description ?? null,
+            dir: p.dir.split('\\').join('/'),
+        })), null, 2));
+        return;
+    }
     if (profiles.length === 0) {
         console.log(kleur.gray('No profiles found.'));
         return;

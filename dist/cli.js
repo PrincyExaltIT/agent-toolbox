@@ -80,14 +80,16 @@ program
 program
     .command('list')
     .description('List available profiles (bundled + ~/.agent-toolbox/profiles/)')
-    .action(() => {
-    list();
+    .option('--json', 'emit machine-readable JSON')
+    .action((opts) => {
+    list(opts);
 });
 program
     .command('status')
     .description('Show which profile is installed on each surface')
-    .action(() => {
-    status();
+    .option('--json', 'emit machine-readable JSON')
+    .action((opts) => {
+    status(opts);
 });
 // Bare invocation (`at` with no args) — show the dashboard, falling back to
 // commander's standard help when no profile has been installed yet.

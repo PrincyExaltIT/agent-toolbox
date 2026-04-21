@@ -11,9 +11,27 @@ import {
 
 const ALL: SurfaceName[] = ['claude', 'copilot-vscode', 'copilot-cli', 'codex'];
 
-export function status(): void {
+export interface StatusOptions {
+  json?: boolean;
+}
+
+export function status(opts: StatusOptions = {}): void {
   const state = readState();
   const profileNames = Object.keys(state.profiles).sort();
+
+  if (opts.json) {
+    const out: Record<string, Record<string, { ok: boolean; detail: string; recorded: boolean }>> = {};
+    for (const name of profileNames) {
+      out[name] = {};
+      for (const surface of ALL) {
+        const recorded = !!state.profiles[name].surfaces[surface];
+        const live = inspect(surface, name);
+        out[name][surface] = { ok: live.ok, detail: live.detail, recorded };
+      }
+    }
+    console.log(JSON.stringify({ profiles: out }, null, 2));
+    return;
+  }
 
   if (profileNames.length === 0) {
     console.log(kleur.gray('No profiles installed. Run `agent-toolbox install <profile>`.'));

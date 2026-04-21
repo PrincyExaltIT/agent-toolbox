@@ -96,10 +96,47 @@ Options common to every install-style command:
 |---|---|
 | `claude` | Per-profile marker block inside `$CLAUDE_CONFIG_DIR/CLAUDE.md` (or `$HOME/.claude/CLAUDE.md`), with an `@`-import pointing at `guidelines/profiles/<name>/CLAUDE.md`. |
 | `copilot-vscode` | A copy of the generated `<name>.agent.md` inside the VS Code user `prompts/` folder. The agent appears in the Copilot Chat agents picker (`Chat: Configure Custom Agents…`). |
-| `copilot-cli` | Prints (or writes into a shell rc with `--write-shell-rc`) `export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=…` pointing at the profile's generated `AGENTS.md`. |
+| `copilot-cli` | Prints (or writes into a shell rc with `--write-shell-rc`) `export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=…` pointing at the profile's generated `AGENTS.md`. See the [Copilot CLI activation](#copilot-cli-activation) section for the two supported modes. |
 | `codex` | Symlinks (or copies if symlinks unavailable) `~/.codex/AGENTS.override.md` to the profile's generated `AGENTS.md`. The `.override.md` filename takes precedence over any existing `AGENTS.md` the user may already maintain. |
 
 Marker blocks and generated artifacts are namespaced per profile (`<!-- agent-toolbox:<name>:begin -->`, `# agent-toolbox:<name>:begin` for shell rc, `<!-- agent-toolbox:<name>:codex -->` for Codex copy), so multiple profiles coexist without collision.
+
+### Copilot CLI activation
+
+By design `install … --copilot-cli` (or `surface enable copilot-cli …`) does **not** mutate your shell rc without consent. Two supported modes:
+
+**Ephemeral (test, current shell only):**
+
+```bash
+# run the install command once to see the exact export line, then paste it:
+agent-toolbox surface enable copilot-cli --profile frequencies
+# copy the printed `export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=…` line into the current terminal
+```
+
+The env var disappears when the terminal closes. Fastest way to try it.
+
+**Persistent (writes into a shell rc):**
+
+```bash
+agent-toolbox surface enable copilot-cli --profile frequencies --write-shell-rc ~/.bashrc
+source ~/.bashrc
+```
+
+Appends a marker block `# agent-toolbox:<profile>:begin/end` to `~/.bashrc` (or `~/.zshrc`, depending on what you pass). Disable with the same flag + `surface disable`.
+
+**Prerequisite:** the GitHub Copilot CLI extension must be installed:
+
+```bash
+gh extension list | grep copilot || gh extension install github/gh-copilot
+```
+
+Quick smoke test afterwards:
+
+```bash
+gh copilot suggest "write a conventional commit for fixing the pagination window clamp on the last page"
+```
+
+Expected: the proposal follows the profile's git guideline (subject-only, imperative, ≤72 chars, no trailing period, no `Co-Authored-By`).
 
 ## Layout
 

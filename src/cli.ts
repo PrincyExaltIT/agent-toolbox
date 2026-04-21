@@ -115,27 +115,27 @@ program
 
 program
   .command('off')
-  .argument('<profile>', 'profile to pause (remembers the active surface set)')
-  .description('Pause a profile — uninstall from every active surface, keep the set in state for `atb on`')
+  .argument('[profile]', 'profile to pause (optional — auto-detects the unique active profile if omitted)')
+  .description('Pause the active profile — uninstall from every active surface, keep the set in state for `atb on`')
   .option('--dry-run', 'preview actions without writing')
   .option('--config-dir <dir>', 'override the Claude user config dir')
   .option('--vscode-settings <path>', 'override the VS Code user settings.json path')
   .option('--codex-home <dir>', 'override the Codex home dir (~/.codex)')
   .option('--write-shell-rc <file>', 'materialize the Copilot CLI export in this shell rc')
-  .action(async (profile: string, opts) => {
+  .action(async (profile: string | undefined, opts) => {
     await off(profile, opts);
   });
 
 program
   .command('on')
-  .argument('<profile>', 'profile to resume (restores the set that was active before `atb off`)')
-  .description('Resume a paused profile — re-install on the exact same surface set that was active before')
+  .argument('[profile]', 'profile to resume (optional — auto-detects the unique paused profile if omitted)')
+  .description('Resume the paused profile — re-install on the exact same surface set that was active before')
   .option('--dry-run', 'preview actions without writing')
   .option('--config-dir <dir>', 'override the Claude user config dir')
   .option('--vscode-settings <path>', 'override the VS Code user settings.json path')
   .option('--codex-home <dir>', 'override the Codex home dir (~/.codex)')
   .option('--write-shell-rc <file>', 'materialize the Copilot CLI export in this shell rc')
-  .action(async (profile: string, opts) => {
+  .action(async (profile: string | undefined, opts) => {
     await on(profile, opts);
   });
 

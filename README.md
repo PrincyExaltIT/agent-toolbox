@@ -34,11 +34,14 @@ The install script resolves this automatically per machine.
 From the toolbox checkout:
 
 ```bash
-./install.sh                         # toolbox path = script dir, config dir = auto
+./install.sh                         # enable (append / update in place)
+./install.sh --uninstall             # disable (remove the toolbox block)
 ./install.sh --dry-run               # preview what would be written
 ./install.sh --toolbox-path /path/to/other/checkout
 ./install.sh --config-dir /custom/claude
 ```
+
+Switch on before a coding session on Frequencies, off when you move to unrelated work — keeps the global context clean without touching the project repo. Both flows are idempotent and safe to re-run.
 
 It appends (or updates in place) a marked block inside the user `CLAUDE.md`:
 

@@ -4,10 +4,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { install } from './commands/install.js';
+import { uninstall } from './commands/uninstall.js';
 import { list } from './commands/list.js';
 import { status } from './commands/status.js';
 import { switchProfile } from './commands/switch.js';
 import { surfaceDisable, surfaceEnable } from './commands/surface.js';
+import { showDashboard } from './commands/default.js';
 const pkgJson = JSON.parse(fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'));
 const program = new Command();
 program
@@ -30,9 +32,14 @@ const sharedInstallOptions = (cmd) => cmd
 sharedInstallOptions(program
     .command('install')
     .argument('<profile>', 'profile name (bundled or ~/.agent-toolbox/profiles/<name>)')
-    .description('Install a profile on one or more agent surfaces')
-    .option('--uninstall', 'deactivate instead of activating')).action(async (profile, opts) => {
+    .description('Install a profile on one or more agent surfaces')).action(async (profile, opts) => {
     await install(profile, opts);
+});
+sharedInstallOptions(program
+    .command('uninstall')
+    .argument('<profile>', 'profile name')
+    .description('Remove a profile from one or more agent surfaces')).action(async (profile, opts) => {
+    await uninstall(profile, opts);
 });
 sharedInstallOptions(program
     .command('switch')
@@ -69,6 +76,14 @@ program
     .action(() => {
     status();
 });
+// Bare invocation (`at` with no args) — show the dashboard, falling back to
+// commander's standard help when no profile has been installed yet.
+if (process.argv.length === 2) {
+    const shown = showDashboard();
+    if (!shown)
+        program.help();
+    process.exit(0);
+}
 program.parseAsync(process.argv).catch((err) => {
     console.error(err instanceof Error ? err.message : err);
     process.exit(1);

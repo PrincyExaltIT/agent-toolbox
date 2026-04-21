@@ -1,6 +1,10 @@
-# Generated per machine by scripts/generate-chatmode.sh — contain absolute paths
-# specific to the local checkout. Never commit; install.sh regenerates them on
-# demand before deploying to the target (Copilot VS Code prompts folder,
-# Copilot CLI profile dir, etc.).
-profiles/*/*.agent.md
-profiles/*/AGENTS.md
+# Generated artifacts. They bake the machine-local toolbox path into their body
+# and are regenerated on every install. Kept out of git so a clone never carries
+# stale paths from another machine.
+guidelines/profiles/*/*.agent.md
+guidelines/profiles/*/AGENTS.md
+
+# Node
+node_modules/
+*.log
+.DS_Store

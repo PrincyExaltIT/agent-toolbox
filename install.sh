@@ -183,11 +183,15 @@ SHELL_MARKER_END="# agent-toolbox:${PROFILE}:end"
 
 banner() {
   local mode="activate"
-  [[ "$UNINSTALL" -eq 1 ]] && mode="deactivate"
+  if [[ "$UNINSTALL" -eq 1 ]]; then
+    mode="deactivate"
+  fi
   echo "profile          : $PROFILE ($mode)"
   echo "toolbox path     : $TOOLBOX_PATH"
   echo "surfaces         : ${SURFACES[*]}"
-  [[ "$DRY_RUN" -eq 1 ]] && echo "dry-run          : on"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "dry-run          : on"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -203,7 +207,9 @@ surface_claude() {
   echo "[claude]"
   echo "  config dir     : $CONFIG_DIR"
   echo "  user CLAUDE.md : $USER_CLAUDE_MD"
-  [[ "$UNINSTALL" -eq 0 ]] && echo "  import line    : $CLAUDE_IMPORT"
+  if [[ "$UNINSTALL" -eq 0 ]]; then
+    echo "  import line    : $CLAUDE_IMPORT"
+  fi
 
   if [[ "$UNINSTALL" -eq 0 && ! -f "$PROFILE_CLAUDE_MD" ]]; then
     echo "  error          : $PROFILE_CLAUDE_MD is missing; cannot install" >&2
@@ -290,7 +296,9 @@ surface_copilot_vscode() {
   echo
   echo "[copilot-vscode]"
   echo "  settings.json  : $VSCODE_SETTINGS"
-  [[ "$UNINSTALL" -eq 0 ]] && echo "  profile dir    : $PROFILE_DIR"
+  if [[ "$UNINSTALL" -eq 0 ]]; then
+    echo "  profile dir    : $PROFILE_DIR"
+  fi
 
   local dir; dir="$(dirname "$VSCODE_SETTINGS")"
   if [[ "$DRY_RUN" -eq 1 ]]; then

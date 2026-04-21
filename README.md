@@ -4,7 +4,28 @@ Personal multi-profile agent toolbox shipped as an npm package. Installs guideli
 
 ## Install
 
-### Global CLI (recommended for daily use)
+### From GitHub Packages (recommended for everyday use on any machine)
+
+One-time per machine:
+
+1. Create a GitHub Personal Access Token at <https://github.com/settings/tokens> with the **`read:packages`** scope.
+2. Add to your user-scope `~/.npmrc` (copy `.npmrc.example` from the repo as a template):
+
+   ```
+   @princyexaltit:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:_authToken=<YOUR_PAT>
+   ```
+
+3. Install globally:
+
+   ```bash
+   npm install -g @princyexaltit/agent-toolbox
+   agent-toolbox --version
+   ```
+
+Update later with `npm update -g @princyexaltit/agent-toolbox`. The `.npmrc` entry is reusable across all scoped packages under `@princyexaltit`.
+
+### From a local clone (dev machine / live-reload)
 
 ```bash
 git clone https://github.com/PrincyExaltIT/agent-toolbox.git
@@ -13,15 +34,28 @@ npm install
 npm install -g .
 ```
 
-`agent-toolbox` is now on your `PATH` from any directory. Re-run `npm install -g .` after pulling updates in the clone.
+This creates a symlink from the npm global `node_modules` to your clone, so edits propagate without publishing. Ideal on the machine where you author guidelines.
 
-### One-shot via npx (no clone, no global)
+### Publishing
+
+Publishing to GitHub Packages is **automated via GitHub Actions** (`.github/workflows/publish.yml`): pushing to `main` with changes under `src/`, `guidelines/`, or `package.json` bumps the patch version and publishes. The workflow uses the repo-scoped `GITHUB_TOKEN` — no manual PAT setup for the maintainer. Version-bump commits are tagged with `[skip ci]` to break the loop.
+
+To publish manually from a local clone (requires a PAT with `write:packages`):
 
 ```bash
-npx github:PrincyExaltIT/agent-toolbox install frequencies
+npm version patch
+npm publish
+git push --follow-tags
 ```
 
-Convenient for occasional use or a first try. Slower than the global install (npm re-downloads the tarball each invocation).
+### Going public later
+
+When the package graduates from private:
+
+1. Change `publishConfig.registry` to `https://registry.npmjs.org/` and `access` to `public` in `package.json`.
+2. Make the GitHub repo public.
+3. `npm publish` once to seed the public registry (requires an `npmjs.com` account configured locally).
+4. Consumers drop their `~/.npmrc` scoped entry; `npm install -g @princyexaltit/agent-toolbox` resolves from npmjs.com by default.
 
 ### Usage
 

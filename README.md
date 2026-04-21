@@ -1,231 +1,148 @@
 # agent-toolbox
 
-Personal multi-profile agent toolbox shipped as an npm package. Installs guideline bundles into Claude Code, GitHub Copilot (VS Code + CLI), and OpenAI Codex — without leaving any agentic-config trace inside the target project repo.
+A CLI that helps you build and maintain a **personal AI workflow** — one profile per project, installed onto Claude Code, GitHub Copilot (VS Code + CLI), and OpenAI Codex with a single command. The package ships **no content** — you author your own profiles, stacks, and shared guidelines where you want, and the CLI manages them for you.
 
 ## Install
 
-### From GitHub Packages (recommended for everyday use on any machine)
+### From GitHub Packages
 
 One-time per machine:
 
-1. Create a GitHub Personal Access Token at <https://github.com/settings/tokens> with the **`read:packages`** scope.
-2. Add to your user-scope `~/.npmrc` (copy `.npmrc.example` from the repo as a template):
-
+1. Create a GitHub Personal Access Token at <https://github.com/settings/tokens> with the `read:packages` scope.
+2. Add to your user-scope `~/.npmrc`:
    ```
    @princyexaltit:registry=https://npm.pkg.github.com
    //npm.pkg.github.com/:_authToken=<YOUR_PAT>
    ```
-
 3. Install globally:
-
    ```bash
    npm install -g @princyexaltit/agent-toolbox
-   agent-toolbox --version
+   atb --version   # 0.3.x
    ```
 
-Update later with `npm update -g @princyexaltit/agent-toolbox`. The `.npmrc` entry is reusable across all scoped packages under `@princyexaltit`.
+Both binaries are installed: `agent-toolbox` (long) and `atb` (short). The rest of this README uses `atb`.
 
-### From a local clone (dev machine / live-reload)
+## First-time setup — configure a content root
 
-```bash
-git clone https://github.com/PrincyExaltIT/agent-toolbox.git
-cd agent-toolbox
-npm install
-npm install -g .
-```
-
-This creates a symlink from the npm global `node_modules` to your clone, so edits propagate without publishing. Ideal on the machine where you author guidelines.
-
-### Publishing
-
-Publishing to GitHub Packages is **automated via GitHub Actions** (`.github/workflows/publish.yml`): pushing to `main` with changes under `src/`, `guidelines/`, or `package.json` bumps the patch version and publishes. The workflow uses the repo-scoped `GITHUB_TOKEN` — no manual PAT setup for the maintainer. Version-bump commits are tagged with `[skip ci]` to break the loop.
-
-To publish manually from a local clone (requires a PAT with `write:packages`):
+The CLI refuses to do anything before you tell it where your content lives. This is the only mandatory step.
 
 ```bash
-npm version patch
-npm publish
-git push --follow-tags
+atb config init
+# wizard prompts for a path; the conventional choice is ~/.agent-toolbox/
 ```
 
-### Going public later
-
-When the package graduates from private:
-
-1. Change `publishConfig.registry` to `https://registry.npmjs.org/` and `access` to `public` in `package.json`.
-2. Make the GitHub repo public.
-3. `npm publish` once to seed the public registry (requires an `npmjs.com` account configured locally).
-4. Consumers drop their `~/.npmrc` scoped entry; `npm install -g @princyexaltit/agent-toolbox` resolves from npmjs.com by default.
-
-### Usage
-
-Two binaries are installed: the long-form `agent-toolbox` and the short alias `atb`. The rest of this README uses `atb`.
+Non-interactive / CI:
 
 ```bash
-atb                                              # dashboard: installed profiles + available + command hints
-atb install frequencies                          # interactive surface picker
-atb install frequencies -c -v                    # short flags (claude + copilot-vs)
-atb install frequencies -s c,vs,cli              # CSV shortcut — same result
-atb install frequencies --all --dry-run          # preview
-atb uninstall frequencies --codex                # remove one surface
-atb new my-csharp-app                            # scaffold a new profile (wizard)
-atb switch frequencies
-atb surface enable copilot-cli --profile frequencies
-atb list
-atb status
-atb status --json | jq .                         # machine-readable output
-atb off                                          # pause the active profile (uninstalls everywhere, remembers the set)
-atb on                                           # resume the paused profile (restores exactly what was active)
-atb completion install                           # hook tab-completion into your shell
+atb config init --root ~/.agent-toolbox --yes
 ```
 
-The compiled `dist/` is committed so installing does not require a build step on the target machine.
+Importing an existing tree (e.g. moving from another machine):
 
-## Commands
+```bash
+atb config init --root ~/.agent-toolbox --from-path /path/to/old/toolbox
+```
 
-| Command | Purpose |
-|---|---|
-| `install <profile> [surface flags] [--dry-run]` | Install a profile on selected surfaces. No surface flag in a TTY → interactive picker. |
-| `uninstall <profile> [surface flags] [--dry-run]` | Remove a profile from selected surfaces. |
-| `switch <profile>` | Swap the currently-installed profile for this one on every surface another profile already occupies. |
-| `surface enable <surface> --profile <name>` / `surface disable <surface> --profile <name>` | Toggle one surface for one profile. |
-| `new <profile> [--description --shared --stacks --yes]` | Scaffold a new user-scope profile at `~/.agent-toolbox/profiles/<name>/`. |
-| `list [--json]` | Show every available profile (bundled + `~/.agent-toolbox/profiles/`). |
-| `status [--json]` | Show which profile is installed on each surface (verified against the filesystem). |
-| `off [profile]` | Pause the active profile — uninstall from every active surface but remember the set. Profile arg is optional (auto-detects the unique active profile). |
-| `on [profile]` | Resume the paused profile — re-install on the exact same surfaces that were active before `off`. Profile arg optional. |
-| `completion install` / `completion uninstall` | Hook or unhook shell tab-completion (bash/zsh/fish). |
+Resolution order (first hit wins):
 
-### Surface flags and shortcodes
+1. `--root <path>` flag on any command
+2. `AGENT_TOOLBOX_ROOT` env var
+3. `contentRoot` in `~/.agent-toolbox/config.json`
 
-All install / uninstall / switch / surface commands accept:
+The config file itself always sits at `~/.agent-toolbox/config.json` (invariant — this is the CLI's own config, not your content).
+
+## Author your content
+
+```bash
+atb new shared git-guidelines            # → <root>/shared/git-guidelines.md (skeleton)
+atb new stack angular                    # → <root>/stacks/angular/ (skeleton guideline files)
+atb new profile my-project               # → <root>/profiles/my-project/ (manifest + project-context + CLAUDE.md)
+```
+
+Each wizard lets you pick what goes in. Non-interactive variants exist for scripts (`--yes` + `--description` etc.).
+
+### What a profile looks like
+
+```
+<content-root>/profiles/my-project/
+├── profile.yaml            # manifest: shared + stacks + project_context + copilot metadata
+├── project-context.md      # architecture, commands, project-specific rules
+└── CLAUDE.md               # @-imports wired to the selected shared/stack files
+```
+
+### What a stack looks like
+
+```
+<content-root>/stacks/angular/
+├── angular-coding-guidelines.md
+└── component-testing.instructions.md   # optional
+```
+
+### What a shared guideline looks like
+
+Just a Markdown file with YAML frontmatter (`name`, `description`) and whatever sections make sense.
+
+## Install a profile onto the agent surfaces
+
+```bash
+atb install my-project                   # interactive surface picker
+atb install my-project -c -v             # short flags (claude + copilot-vs)
+atb install my-project -s c,vs,cli       # CSV shortcut
+atb install my-project --all --dry-run   # preview all 4 surfaces
+```
+
+All surfaces share the same flag set:
 
 | Long | Short | `--surfaces` code |
 |---|---|---|
-| `--claude` | `-c` | `c` or `claude` |
-| `--copilot-vs` | `-v` | `vs` or `copilot-vs` |
-| `--copilot-cli` | `-l` | `cli` or `copilot-cli` |
-| `--codex` | `-x` | `x` or `codex` |
+| `--claude` | `-c` | `c` |
+| `--copilot-vs` | `-v` | `vs` |
+| `--copilot-cli` | `-l` | `cli` |
+| `--codex` | `-x` | `x` |
 | `--all` | — | `all` |
 
-`--surfaces <csv>` (`-s`) combines any subset, e.g. `atb install freq -s c,vs,cli`. Mix-and-match with the individual flags — they all merge into one set.
+Only one profile can be active at a time. Trying to install a second profile while another is active errors out and points at `atb switch` (swap) or `atb off` (pause).
 
-### Options common to every install-style command
+## Every command
 
-```
---dry-run                preview without writing
---yes                    skip the interactive prompt and install on every surface
---config-dir <dir>       override the Claude user config dir
---vscode-settings <path> override the VS Code user settings.json path
---codex-home <dir>       override the Codex home dir (default ~/.codex)
---write-shell-rc <file>  materialize the Copilot CLI export in this shell rc
-```
+| Command | Purpose |
+|---|---|
+| `config init / get / set / path / show` | Manage the content root and CLI config |
+| `new profile / stack / shared <name>` | Scaffold a new content file / directory |
+| `install <profile>` / `uninstall <profile>` | Bootstrap / remove a profile on selected surfaces |
+| `switch <profile>` | Swap the currently-installed profile for another (same surfaces) |
+| `surface enable <s> --profile <p>` / `surface disable <s> --profile <p>` | Toggle one surface |
+| `on` / `off` | Quick pause / resume — remembers the active surface set |
+| `list` / `status` | Discover profiles / check what's installed where |
+| `completion install` / `completion uninstall` | Shell tab-completion |
 
-`atb uninstall <profile> --codex` is the first-class way to remove one surface; `atb surface disable codex --profile <name>` is a synonym.
+Everything common to install flows: `--dry-run`, `--yes`, `--config-dir`, `--vscode-settings`, `--codex-home`, `--write-shell-rc`.
 
 ## Surfaces
 
 | Surface | What gets written |
 |---|---|
-| `claude` | Per-profile marker block inside `$CLAUDE_CONFIG_DIR/CLAUDE.md` (or `$HOME/.claude/CLAUDE.md`), with an `@`-import pointing at `guidelines/profiles/<name>/CLAUDE.md`. |
-| `copilot-vscode` | A copy of the generated `<name>.agent.md` inside the VS Code user `prompts/` folder. The agent appears in the Copilot Chat agents picker (`Chat: Configure Custom Agents…`). |
-| `copilot-cli` | Prints (or writes into a shell rc with `--write-shell-rc`) `export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=…` pointing at the profile's generated `AGENTS.md`. See the [Copilot CLI activation](#copilot-cli-activation) section for the two supported modes. |
-| `codex` | Symlinks (or copies if symlinks unavailable) `~/.codex/AGENTS.override.md` to the profile's generated `AGENTS.md`. The `.override.md` filename takes precedence over any existing `AGENTS.md` the user may already maintain. |
+| `claude` | Per-profile marker block inside `$CLAUDE_CONFIG_DIR/CLAUDE.md` with an `@`-import to `<content-root>/profiles/<name>/CLAUDE.md`. |
+| `copilot-vscode` | A copy of the generated `<name>.agent.md` inside the VS Code user `prompts/` folder. Appears in the Copilot Chat agents picker after restart. |
+| `copilot-cli` | Prints (or writes into a shell rc) `export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=…` pointing at the profile's generated `AGENTS.md`. |
+| `codex` | Symlinks (or copies) `~/.codex/AGENTS.override.md` to the profile's generated `AGENTS.md`. |
 
-Marker blocks and generated artifacts are namespaced per profile (`<!-- agent-toolbox:<name>:begin -->`, `# agent-toolbox:<name>:begin` for shell rc, `<!-- agent-toolbox:<name>:codex -->` for Codex copy), so multiple profiles coexist without collision.
+Generated `.agent.md` and `AGENTS.md` are **thin** (~3 KB): a preamble + a table mapping "scope → absolute path". The agent uses its `read` tool to pull the guidelines on demand — no 60 KB context tax upfront, same lazy shape Claude gets from `@`-imports.
 
-### Copilot CLI activation
+## Migration from v0.2
 
-By design `install … --copilot-cli` (or `surface enable copilot-cli …`) does **not** mutate your shell rc without consent. Two supported modes:
+v0.3 removed the bundled `frequencies` profile, `shared/` and `stacks/` content from the package. If you were on v0.2:
 
-**Ephemeral (test, current shell only):**
+1. `atb config init --root ~/.agent-toolbox --from-path <your-v0.2-clone>/guidelines` (copies the content you had)
+2. Or copy manually: `cp -r <clone>/guidelines/* ~/.agent-toolbox/`
+3. `atb install <profile>` keeps working — everything else is unchanged (`state.json`, surface markers, `profile.yaml` format).
 
-```bash
-# run the install command once to see the exact export line, then paste it:
-agent-toolbox surface enable copilot-cli --profile frequencies
-# copy the printed `export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=…` line into the current terminal
-```
+## Publishing (maintainer)
 
-The env var disappears when the terminal closes. Fastest way to try it.
+Push to `main` with changes under `src/` or `package.json` → GitHub Actions auto-bumps the patch version and publishes to GitHub Packages via the repo `GITHUB_TOKEN`. Minor / major bumps: edit `package.json` manually in your commit.
 
-**Persistent (writes into a shell rc):**
-
-```bash
-agent-toolbox surface enable copilot-cli --profile frequencies --write-shell-rc ~/.bashrc
-source ~/.bashrc
-```
-
-Appends a marker block `# agent-toolbox:<profile>:begin/end` to `~/.bashrc` (or `~/.zshrc`, depending on what you pass). Disable with the same flag + `surface disable`.
-
-**Prerequisite:** the GitHub Copilot CLI extension must be installed:
-
-```bash
-gh extension list | grep copilot || gh extension install github/gh-copilot
-```
-
-Quick smoke test afterwards:
-
-```bash
-gh copilot suggest "write a conventional commit for fixing the pagination window clamp on the last page"
-```
-
-Expected: the proposal follows the profile's git guideline (subject-only, imperative, ≤72 chars, no trailing period, no `Co-Authored-By`).
-
-## Layout
-
-```
-agent-toolbox/
-├── src/                            # TypeScript sources
-├── guidelines/                     # bundled content
-│   ├── shared/                     # cross-stack (git, testing philosophy, …)
-│   ├── stacks/                     # per-stack (angular, java-spring, …)
-│   └── profiles/                   # bundled profiles (frequencies, …)
-└── package.json
-```
-
-User-authored extensions live under `~/.agent-toolbox/`:
-
-```
-~/.agent-toolbox/
-├── profiles/<name>/                # your own profiles, override or complement bundled ones
-├── generated/<name>/               # regenerated artifacts used by copilot-vscode, copilot-cli, codex
-└── state.json                      # what this CLI installed, for status & switch
-```
-
-User profiles shadow bundled ones of the same name, and may reference bundled `shared/` and `stacks/` files.
-
-## Adding a new profile
-
-Use the wizard — it picks the right shared + stacks for you and writes the three skeleton files:
-
-```bash
-at new my-csharp-app
-# Follow the prompts: description, shared guidelines, stacks, Copilot agent description.
-# Then edit project-context.md with architecture / commands / rules and run:
-at install my-csharp-app
-```
-
-Non-interactive form for scripts:
-
-```bash
-at new my-csharp-app \
-  --description "My C# / .NET side project" \
-  --shared git-guidelines.md,testing-guidelines.md,unit-testing.instructions.md \
-  --stacks csharp-dotnet \
-  --yes
-```
-
-If `stacks/csharp-dotnet/` does not exist yet (neither bundled nor user), create it manually under `~/.agent-toolbox/stacks/csharp-dotnet/` with your stack's guideline files — the stack scaffolder is planned but not shipped yet.
-
-## Why thin agents
-
-Copilot VS Code and Codex load the agent body eagerly when the agent is activated. Inlining every shared + stack + context file produced a 60+ KB body — a 20× context tax compared to Claude's lazy `@`-imports. The generator instead emits a **thin body** (~3 KB) containing a table that maps "scope hint → absolute path" and a rule block instructing the agent to `read` the matching file before acting. Same lazy-loading shape as Claude.
-
-## Constraints and caveats
+## Constraints
 
 - **Node ≥ 20** required.
-- **Windows + direct git sources are broken.** Do **not** run `npm install -g github:PrincyExaltIT/agent-toolbox` on Windows — npm creates a symlink into `_cacache/tmp/git-clone…` that it then wipes, leaving a broken dangling symlink (see [npm/cli#4031](https://github.com/npm/cli/issues/4031), [#5189](https://github.com/npm/cli/issues/5189), [#6033](https://github.com/npm/cli/issues/6033)). macOS / Linux work fine either way, but the registry path above is the only cross-platform single-command install. For local dev on any OS, clone + `npm install -g .` also works (symlink to a permanent local checkout).
-- **Windows paths** everywhere else are forward-slash-normalised. Codex symlink may fall back to a plain copy if Developer Mode is off — the CLI handles the fallback transparently and reports which mode was used.
+- **Windows** supported everywhere. `npm install -g github:...` on Windows is known-broken (npm temp-dir symlink bug) — install from the registry instead.
 - **Zero trace in the target project** — all writes are user-scope (Claude user config, VS Code user profile, Codex home, shell rc). The project repo stays clean.
-- Generated artifacts (`*.agent.md`, `AGENTS.md`) live under `~/.agent-toolbox/generated/` — never inside the package tree, never inside the target project.
-- **Never commit your `~/.npmrc`.** It holds the GitHub PAT. Treat a leaked PAT as compromised — revoke it at <https://github.com/settings/tokens> and regenerate.

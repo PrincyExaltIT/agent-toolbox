@@ -7,7 +7,7 @@ const SURFACES = ['claude', 'copilot-vs', 'copilot-cli', 'codex'];
 const SURFACE_SUBCOMMANDS = ['enable', 'disable'];
 /**
  * Build the completion tree shared by both bin aliases. omelette dispatches on
- * argv[1] — when the user taps TAB after `at install `, this handler is invoked
+ * argv[1] — when the user taps TAB after `atb install `, this handler is invoked
  * with the previous token so we can return the relevant completion set.
  */
 function buildCompletion(name) {

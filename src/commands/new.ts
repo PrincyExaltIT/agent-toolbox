@@ -150,7 +150,7 @@ export async function newProfile(name: string, opts: NewOptions): Promise<void> 
   if (interactive) {
     p.log.success(`Created profile at ${dir.split(path.sep).join('/')}`);
     p.log.info('Files: profile.yaml, project-context.md (skeleton — edit before installing), CLAUDE.md (@-imports wired)');
-    p.log.info(`Next: edit project-context.md, then \`at install ${name}\``);
+    p.log.info(`Next: edit project-context.md, then \`atb install ${name}\``);
     p.outro('Done.');
   } else {
     console.log(`Created profile at ${dir.split(path.sep).join('/')}`);

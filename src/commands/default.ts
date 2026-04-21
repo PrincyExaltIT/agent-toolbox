@@ -43,6 +43,6 @@ export function showDashboard(): boolean {
   }
 
   console.log(kleur.gray('Commands: install, uninstall, switch, surface, list, status'));
-  console.log(kleur.gray('Run `at --help` for details.'));
+  console.log(kleur.gray('Run `atb --help` for details.'));
   return true;
 }

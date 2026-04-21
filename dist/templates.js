@@ -46,6 +46,61 @@ ${description}
 - <!-- TODO: first non-negotiable -->
 `;
 }
+export function renderSharedGuidelineSkeleton(filename, description) {
+    const title = filename.replace(/\.md$/, '').replace(/[-_]/g, ' ');
+    return `---
+name: ${title}
+description: ${description}
+---
+
+# ${title}
+
+${description}
+
+<!-- TODO: flesh out the guideline. Keep the frontmatter description crisp — it
+is surfaced in profile.yaml scope hints and in the CLI pickers. -->
+
+## Section 1
+
+<!-- TODO -->
+
+## What the agent must never do
+
+- <!-- TODO: first non-negotiable rule -->
+`;
+}
+export function renderStackGuidelineSkeleton(stackName, filename, description) {
+    const title = filename.replace(/\.md$/, '').replace(/[-_]/g, ' ');
+    return `---
+name: ${stackName} — ${title}
+description: ${description}
+---
+
+# ${stackName} — ${title}
+
+${description}
+
+<!-- TODO: fill in stack-specific conventions. Examples: naming, formatting,
+framework idioms, testing patterns. Keep it focused on the stack itself; project
+specifics belong in profile project-context.md. -->
+
+## Formatting
+
+<!-- TODO -->
+
+## Naming conventions
+
+<!-- TODO -->
+
+## Language / framework idioms
+
+<!-- TODO -->
+
+## What the agent must never do
+
+- <!-- TODO: first non-negotiable rule for this stack -->
+`;
+}
 export function renderProfileClaudeMd(profileName, shared, stacks) {
     const sharedImports = shared.map((s) => `@../../shared/${s}`).join('\n');
     // Stack imports resolve every *.md in the stack dir. We don't enumerate here —

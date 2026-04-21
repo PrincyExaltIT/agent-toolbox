@@ -34,7 +34,9 @@ export async function newProfile(name: string, opts: NewOptions): Promise<void> 
   const stacks = listStacks();
 
   if (shared.length === 0 && stacks.length === 0) {
-    throw new Error('No shared guidelines or stacks found. Install the bundled content first or add entries under ~/.agent-toolbox/{shared,stacks}.');
+    throw new Error(
+      'No shared guidelines or stacks in your content root yet. Run `atb new shared <name>` or `atb new stack <name>` first, or import an existing tree via `atb config init --from-path <dir>`.'
+    );
   }
 
   const interactive = !opts.yes && process.stdin.isTTY;

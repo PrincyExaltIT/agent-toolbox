@@ -11,6 +11,8 @@ import { switchProfile } from './commands/switch.js';
 import { surfaceDisable, surfaceEnable } from './commands/surface.js';
 import { showDashboard } from './commands/default.js';
 import { newProfile } from './commands/new.js';
+import { newStack } from './commands/new-stack.js';
+import { newShared } from './commands/new-shared.js';
 import { installCompletion, uninstallCompletion, runCompletionHook, } from './commands/completion.js';
 import { off, on } from './commands/toggle.js';
 import { configInit, configGet, configSet, configPath, configShow, } from './commands/config.js';
@@ -72,17 +74,39 @@ sharedInstallOptions(surfaceCmd
     .description('Disable one surface for a profile')).action(async (surface, opts) => {
     await surfaceDisable(surface, opts);
 });
-program
+const newCmd = program
     .command('new')
-    .argument('<profile>', 'profile name (created under ~/.agent-toolbox/profiles/<name>)')
-    .description('Scaffold a new user-scope profile interactively')
+    .description('Scaffold new content (profile, stack, or shared guideline)');
+newCmd
+    .command('profile')
+    .argument('<name>', 'profile name (created under <content-root>/profiles/<name>)')
+    .description('Scaffold a new profile interactively')
     .option('--description <s>', 'profile description (one line)')
     .option('--shared <csv>', 'shared guideline filenames, csv')
     .option('--stacks <csv>', 'stack names, csv')
     .option('--copilot-description <s>', 'Copilot agent description')
     .option('--yes', 'skip prompts and use defaults / passed flags')
-    .action(async (profile, opts) => {
-    await newProfile(profile, opts);
+    .action(async (name, opts) => {
+    await newProfile(name, opts);
+});
+newCmd
+    .command('stack')
+    .argument('<name>', 'stack name (created under <content-root>/stacks/<name>/)')
+    .description('Scaffold a new stack (one or more guideline skeletons)')
+    .option('--description <s>', 'stack description (one line)')
+    .option('--files <csv>', 'initial filenames, csv (default: <name>-coding-guidelines.md)')
+    .option('--yes', 'skip prompts and use defaults / passed flags')
+    .action(async (name, opts) => {
+    await newStack(name, opts);
+});
+newCmd
+    .command('shared')
+    .argument('<name>', 'filename (created at <content-root>/shared/<name>.md)')
+    .description('Scaffold a new shared guideline')
+    .option('--description <s>', 'one-line description (surfaced in profile scope hints)')
+    .option('--yes', 'skip prompts')
+    .action(async (name, opts) => {
+    await newShared(name, opts);
 });
 program
     .command('off')

@@ -142,29 +142,85 @@ emit_section_separator() {
   printf '\n\n---\n\n## source: %s\n\n' "$rel" >> "$out"
 }
 
-emit_file() {
-  local file="$1" rel="$2" out="$3"
-  emit_section_separator "$rel" "$out"
-  cat "$file" >> "$out"
+# Convert a local path to the form the VS Code / Copilot CLI process will see
+# when it opens the file. On Windows under Git Bash we want native forward-slash
+# paths with a drive letter.
+to_agent_path() {
+  local p="$1"
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -m "$p"
+  else
+    printf '%s' "$p"
+  fi
+}
+
+# Read the description from a guideline file's YAML frontmatter.
+yaml_frontmatter_description() {
+  awk '
+    BEGIN { in_fm = 0; found = 0 }
+    NR == 1 && /^---[[:space:]]*$/ { in_fm = 1; next }
+    in_fm && /^---[[:space:]]*$/ { exit }
+    in_fm && /^description:[[:space:]]*/ {
+      sub(/^description:[[:space:]]*/, "")
+      gsub(/^"/, ""); gsub(/"$/, "")
+      gsub(/^'\''/, ""); gsub(/'\''$/, "")
+      print
+      found = 1
+      exit
+    }
+  ' "$1"
 }
 
 compose_body() {
-  # Composes: shared -> each stack's *.md sorted -> project_context
-  # Outputs content to $out.
+  # Thin body: a short preamble + a table mapping task scope to the absolute
+  # path of the guideline file Copilot / Claude should read before acting.
+  # Keeps the agent context small (~1–2 KB instead of inlining the 60+ KB of
+  # guidelines) — the agent pulls each file on demand with its read tool, the
+  # same lazy-loading effect Claude Code gets from @-imports.
   local profile_dir="$1" manifest="$2" out="$3"
+
+  local profile
+  profile="$(basename "$profile_dir")"
 
   mapfile -t shared < <(yaml_list "$manifest" "shared")
   mapfile -t stacks < <(yaml_list "$manifest" "stacks")
   local project_context
   project_context="$(yaml_scalar "$manifest" "project_context")"
 
+  {
+    printf -- '\nYou are the **%s** agent.\n\n' "$profile"
+    printf -- 'Load context on demand using the `read` tool — do not rely on generic knowledge when a project guideline exists. The files below are the authoritative source for this profile.\n\n'
+  } >> "$out"
+
+  # Always-read: project context. Small, architecture-specific, cheap to pull.
+  if [[ -n "$project_context" ]]; then
+    local ctx_path="$profile_dir/$project_context"
+    if [[ ! -f "$ctx_path" ]]; then
+      echo "error: project_context not found: $ctx_path" >&2
+      exit 1
+    fi
+    {
+      printf -- '## Always read at the start of any coding task\n\n'
+      printf -- '- `%s` — project architecture, commands, and non-negotiable rules.\n\n' "$(to_agent_path "$ctx_path")"
+    } >> "$out"
+  fi
+
+  # Guideline table.
+  {
+    printf -- '## Load when the task enters this scope\n\n'
+    printf -- '| Scope hint (from the file) | Read |\n'
+    printf -- '|---|---|\n'
+  } >> "$out"
+
+  local path desc
   for entry in "${shared[@]}"; do
-    local path="$TOOLBOX_PATH/shared/$entry"
+    path="$TOOLBOX_PATH/shared/$entry"
     if [[ ! -f "$path" ]]; then
       echo "error: shared file not found: shared/$entry" >&2
       exit 1
     fi
-    emit_file "$path" "shared/$entry" "$out"
+    desc="$(yaml_frontmatter_description "$path")"
+    printf -- '| %s | `%s` |\n' "${desc:-$entry}" "$(to_agent_path "$path")" >> "$out"
   done
 
   for stack in "${stacks[@]}"; do
@@ -174,19 +230,21 @@ compose_body() {
       exit 1
     fi
     mapfile -t stack_files < <(find "$stack_dir" -maxdepth 1 -type f -name '*.md' -printf '%f\n' | sort)
+    local f
     for f in "${stack_files[@]}"; do
-      emit_file "$stack_dir/$f" "stacks/$stack/$f" "$out"
+      desc="$(yaml_frontmatter_description "$stack_dir/$f")"
+      printf -- '| %s | `%s` |\n' "${desc:-$stack/$f}" "$(to_agent_path "$stack_dir/$f")" >> "$out"
     done
   done
 
-  if [[ -n "$project_context" ]]; then
-    local ctx_path="$profile_dir/$project_context"
-    if [[ ! -f "$ctx_path" ]]; then
-      echo "error: project_context not found: $ctx_path" >&2
-      exit 1
-    fi
-    emit_file "$ctx_path" "profiles/$(basename "$profile_dir")/$project_context" "$out"
-  fi
+  # Closing rules.
+  {
+    printf -- '\n## Rules\n\n'
+    printf -- '- Read the matching file(s) **before** acting; when a task spans multiple scopes, load every applicable file.\n'
+    printf -- '- Follow the file literally — it is the source of truth. When in doubt, re-read.\n'
+    printf -- '- Declare a task done only after running the checks the guideline prescribes (`npm test`, `./gradlew test`, lint, coverage threshold, etc.).\n'
+    printf -- '- Never copy agent-config files (this agent file, CLAUDE.md, the toolbox) into the target project repo.\n'
+  } >> "$out"
 }
 
 generate_profile() {

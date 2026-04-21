@@ -15,10 +15,11 @@ program
     .description('Install and manage personal agent profiles across Claude Code, Copilot VS Code, Copilot CLI, and Codex.')
     .version(pkgJson.version);
 const sharedInstallOptions = (cmd) => cmd
-    .option('--claude', 'enable the Claude Code surface')
-    .option('--copilot-vscode', 'enable the Copilot VS Code surface')
-    .option('--copilot-cli', 'enable the Copilot CLI surface')
-    .option('--codex', 'enable the Codex surface')
+    .option('-c, --claude', 'enable the Claude Code surface')
+    .option('-v, --copilot-vs', 'enable the Copilot VS Code surface')
+    .option('-l, --copilot-cli', 'enable the Copilot CLI surface')
+    .option('-x, --codex', 'enable the Codex surface')
+    .option('-s, --surfaces <csv>', 'surfaces as csv: c,vs,cli,x,all or full names (e.g. claude,copilot-vs)')
     .option('--all', 'enable all surfaces (default when no flag is passed in non-TTY / --yes)')
     .option('--dry-run', 'preview actions without writing')
     .option('--yes', 'skip the interactive prompt when no surface flag is passed')

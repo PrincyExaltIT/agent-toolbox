@@ -7,6 +7,17 @@ import { runCopilotVscode } from '../surfaces/copilot-vscode.js';
 import { runCopilotCli } from '../surfaces/copilot-cli.js';
 import { runCodex } from '../surfaces/codex.js';
 import { recordInstall, recordUninstall } from '../state.js';
+const SURFACE_ALIASES = {
+    c: 'claude',
+    claude: 'claude',
+    vs: 'copilot-vscode',
+    'copilot-vs': 'copilot-vscode',
+    'copilot-vscode': 'copilot-vscode',
+    cli: 'copilot-cli',
+    'copilot-cli': 'copilot-cli',
+    x: 'codex',
+    codex: 'codex',
+};
 const ALL_SURFACES = ['claude', 'copilot-vscode', 'copilot-cli', 'codex'];
 export async function install(profileName, opts) {
     const profile = locateProfile(profileName);
@@ -92,20 +103,34 @@ function runSurface(surface, profile, artifacts, opts) {
     }
 }
 async function resolveSurfaces(opts) {
+    // Merge every source (--all, individual flags, --surfaces CSV) into one set.
+    const collected = new Set();
     if (opts.all)
-        return ALL_SURFACES;
-    const explicit = [];
+        ALL_SURFACES.forEach((s) => collected.add(s));
     if (opts.claude)
-        explicit.push('claude');
-    if (opts.copilotVscode)
-        explicit.push('copilot-vscode');
+        collected.add('claude');
+    if (opts.copilotVs || opts.copilotVscode)
+        collected.add('copilot-vscode');
     if (opts.copilotCli)
-        explicit.push('copilot-cli');
+        collected.add('copilot-cli');
     if (opts.codex)
-        explicit.push('codex');
-    if (explicit.length > 0)
-        return explicit;
-    // No flags — prompt interactively unless --yes forces "all".
+        collected.add('codex');
+    if (opts.surfaces) {
+        for (const raw of opts.surfaces.split(',').map((s) => s.trim()).filter(Boolean)) {
+            if (raw === 'all') {
+                ALL_SURFACES.forEach((s) => collected.add(s));
+                continue;
+            }
+            const resolved = SURFACE_ALIASES[raw];
+            if (!resolved) {
+                throw new Error(`Unknown surface in --surfaces: "${raw}". Accepted: c, vs, cli, x, all, or full names.`);
+            }
+            collected.add(resolved);
+        }
+    }
+    if (collected.size > 0)
+        return [...collected];
+    // No flags provided — prompt interactively unless --yes or a non-TTY.
     if (opts.yes)
         return ALL_SURFACES;
     if (!process.stdin.isTTY)

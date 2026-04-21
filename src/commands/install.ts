@@ -11,9 +11,14 @@ import type { SurfaceResult } from '../surfaces/claude.js';
 
 export interface InstallOptions {
   claude?: boolean;
+  /** v0.2 user-facing flag name; maps to 'copilot-vscode' SurfaceName */
+  copilotVs?: boolean;
+  /** @deprecated pre-0.2 flag name, kept for a grace period via the commander alias; new code uses copilotVs */
   copilotVscode?: boolean;
   copilotCli?: boolean;
   codex?: boolean;
+  /** csv of short codes (c,vs,cli,x), full names (claude,copilot-vs,...), or 'all' */
+  surfaces?: string;
   all?: boolean;
   uninstall?: boolean;
   dryRun?: boolean;
@@ -23,6 +28,18 @@ export interface InstallOptions {
   writeShellRc?: string;
   yes?: boolean;
 }
+
+const SURFACE_ALIASES: Record<string, SurfaceName> = {
+  c: 'claude',
+  claude: 'claude',
+  vs: 'copilot-vscode',
+  'copilot-vs': 'copilot-vscode',
+  'copilot-vscode': 'copilot-vscode',
+  cli: 'copilot-cli',
+  'copilot-cli': 'copilot-cli',
+  x: 'codex',
+  codex: 'codex',
+};
 
 const ALL_SURFACES: SurfaceName[] = ['claude', 'copilot-vscode', 'copilot-cli', 'codex'];
 
@@ -118,16 +135,32 @@ function runSurface(
 }
 
 async function resolveSurfaces(opts: InstallOptions): Promise<SurfaceName[]> {
-  if (opts.all) return ALL_SURFACES;
+  // Merge every source (--all, individual flags, --surfaces CSV) into one set.
+  const collected = new Set<SurfaceName>();
 
-  const explicit: SurfaceName[] = [];
-  if (opts.claude) explicit.push('claude');
-  if (opts.copilotVscode) explicit.push('copilot-vscode');
-  if (opts.copilotCli) explicit.push('copilot-cli');
-  if (opts.codex) explicit.push('codex');
-  if (explicit.length > 0) return explicit;
+  if (opts.all) ALL_SURFACES.forEach((s) => collected.add(s));
+  if (opts.claude) collected.add('claude');
+  if (opts.copilotVs || opts.copilotVscode) collected.add('copilot-vscode');
+  if (opts.copilotCli) collected.add('copilot-cli');
+  if (opts.codex) collected.add('codex');
 
-  // No flags — prompt interactively unless --yes forces "all".
+  if (opts.surfaces) {
+    for (const raw of opts.surfaces.split(',').map((s) => s.trim()).filter(Boolean)) {
+      if (raw === 'all') {
+        ALL_SURFACES.forEach((s) => collected.add(s));
+        continue;
+      }
+      const resolved = SURFACE_ALIASES[raw];
+      if (!resolved) {
+        throw new Error(`Unknown surface in --surfaces: "${raw}". Accepted: c, vs, cli, x, all, or full names.`);
+      }
+      collected.add(resolved);
+    }
+  }
+
+  if (collected.size > 0) return [...collected];
+
+  // No flags provided — prompt interactively unless --yes or a non-TTY.
   if (opts.yes) return ALL_SURFACES;
   if (!process.stdin.isTTY) return ALL_SURFACES;
 

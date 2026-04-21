@@ -40,20 +40,24 @@ export async function switchProfile(profileName: string, opts: SwitchOptions): P
       ...opts,
       uninstall: true,
       claude: surfaces.includes('claude'),
-      copilotVscode: surfaces.includes('copilot-vscode'),
+      copilotVs: surfaces.includes('copilot-vscode'),
       copilotCli: surfaces.includes('copilot-cli'),
       codex: surfaces.includes('codex'),
       yes: true,
     });
   }
 
-  // 2. Install the new profile on the same surface set.
+  // 2. Install the new profile on the same surface set. Bypass the
+  // one-active-profile guard — we just uninstalled the previous occupant,
+  // and in --dry-run that uninstall is only simulated so state.json still
+  // reads the other profile as active.
   await install(profileName, {
     ...opts,
     claude: surfaceSet.has('claude'),
-    copilotVscode: surfaceSet.has('copilot-vscode'),
+    copilotVs: surfaceSet.has('copilot-vscode'),
     copilotCli: surfaceSet.has('copilot-cli'),
     codex: surfaceSet.has('codex'),
     yes: true,
+    _bypassActiveCheck: true,
   });
 }

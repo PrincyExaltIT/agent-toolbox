@@ -9,7 +9,8 @@
 
 ### New
 
-- `atb off` / `atb on` — quick pause / resume that remembers the active surface set across sessions (persisted in `state.json` under `pausedSurfaces`). Profile argument is optional: with no arg, auto-detects the unique active (off) or paused (on) profile. Pass the name explicitly only in the rare case where multiple profiles coexist.
+- **Enforced "one active profile at a time".** `atb install <name>` now refuses when another profile is already active — points the user at `atb switch` (swap) or `atb off` (pause) instead. Prevents the silent drift where two profiles both claim Codex's single `AGENTS.override.md` slot. `switch` bypasses the guard internally since it already orchestrates the swap.
+- `atb off` / `atb on` — quick pause / resume that remembers the active surface set across sessions (persisted in `state.json` under `pausedSurfaces`). Profile argument is optional: with no arg, auto-detects the unique active (off) or paused (on) profile.
 - Short binary alias `atb` — both `atb` and `agent-toolbox` point at the same CLI.
 - Short surface flags: `-c` `--claude`, `-v` `--copilot-vs`, `-l` `--copilot-cli`, `-x` `--codex`.
 - `-s, --surfaces <csv>` multi-value flag accepting shortcodes (`c,vs,cli,x,all`) or full names.

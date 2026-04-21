@@ -6,7 +6,7 @@ import { runClaude } from '../surfaces/claude.js';
 import { runCopilotVscode } from '../surfaces/copilot-vscode.js';
 import { runCopilotCli } from '../surfaces/copilot-cli.js';
 import { runCodex } from '../surfaces/codex.js';
-import { recordInstall, recordUninstall, SurfaceName } from '../state.js';
+import { readState, recordInstall, recordUninstall, SurfaceName } from '../state.js';
 import type { SurfaceResult } from '../surfaces/claude.js';
 
 export interface InstallOptions {
@@ -27,6 +27,13 @@ export interface InstallOptions {
   codexHome?: string;
   writeShellRc?: string;
   yes?: boolean;
+  /**
+   * Internal flag used by `switch` to bypass the "one active profile" check.
+   * switch orchestrates the swap itself (uninstalls the previous profile
+   * then installs the new one) so the check is redundant and breaks under
+   * --dry-run where the first uninstall is only simulated.
+   */
+  _bypassActiveCheck?: boolean;
 }
 
 const SURFACE_ALIASES: Record<string, SurfaceName> = {
@@ -45,6 +52,25 @@ const ALL_SURFACES: SurfaceName[] = ['claude', 'copilot-vscode', 'copilot-cli', 
 
 export async function install(profileName: string, opts: InstallOptions): Promise<void> {
   const profile = locateProfile(profileName);
+
+  // Enforce "one active profile at a time". Codex only has a single
+  // ~/.codex/AGENTS.override.md slot anyway; letting two profiles claim it
+  // silently overwrites the first. Same-profile re-install is idempotent, so
+  // the check only fires when a *different* profile is already live. Skipped
+  // on uninstall and when `switch` orchestrates the swap (switch uninstalls
+  // the previous profile first, clearing state before calling install again).
+  if (!opts.uninstall && !opts._bypassActiveCheck) {
+    const state = readState();
+    const otherActive = Object.entries(state.profiles).filter(
+      ([name, s]) => name !== profile.name && Object.keys(s.surfaces).length > 0
+    );
+    if (otherActive.length > 0) {
+      const names = otherActive.map(([n]) => n).join(', ');
+      throw new Error(
+        `Profile "${names}" is already active. Use \`atb switch ${profile.name}\` to swap, or \`atb off\` to pause the current one first.`
+      );
+    }
+  }
 
   const surfaces = await resolveSurfaces(opts);
   if (surfaces.length === 0) {

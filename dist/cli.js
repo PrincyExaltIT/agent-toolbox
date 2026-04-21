@@ -1,15 +1,19 @@
 #!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { install } from './commands/install.js';
 import { list } from './commands/list.js';
 import { status } from './commands/status.js';
 import { switchProfile } from './commands/switch.js';
 import { surfaceDisable, surfaceEnable } from './commands/surface.js';
+const pkgJson = JSON.parse(fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'));
 const program = new Command();
 program
     .name('agent-toolbox')
     .description('Install and manage personal agent profiles across Claude Code, Copilot VS Code, Copilot CLI, and Codex.')
-    .version('0.1.0');
+    .version(pkgJson.version);
 const sharedInstallOptions = (cmd) => cmd
     .option('--claude', 'enable the Claude Code surface')
     .option('--copilot-vscode', 'enable the Copilot VS Code surface')

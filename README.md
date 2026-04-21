@@ -18,32 +18,57 @@ Personal workflow for the Frequencies Popscore project (Angular 20 front + Sprin
 
 ## Activation
 
-The project directory must stay free of these files. Pick one of:
+The project directory must stay free of these files. The recommended path is to run the install script; manual options follow for reference.
 
-### Option 1 — Import via user-level `CLAUDE.md`
+### User-level Claude config dir
 
-Add an `@`-import to `~/.claude/CLAUDE.md` (Claude Code resolves these at session start) scoped to the project path:
+Claude Code looks for the user-level `CLAUDE.md` under:
 
-```md
-<!-- When working on Frequencies Popscore, load the toolbox -->
-@C:/Users/metal/workspace/02-personal/agent-toolbox/CLAUDE.md
+1. `$CLAUDE_CONFIG_DIR` if the environment variable is set (this machine: `D:\.claude`)
+2. `$HOME/.claude` otherwise
+
+The install script resolves this automatically per machine.
+
+### Option 1 — Install script (recommended)
+
+From the toolbox checkout:
+
+```bash
+./install.sh                         # toolbox path = script dir, config dir = auto
+./install.sh --dry-run               # preview what would be written
+./install.sh --toolbox-path /path/to/other/checkout
+./install.sh --config-dir /custom/claude
 ```
 
-The `@` syntax inlines the file contents into the loaded context. Nested `@`-imports inside `CLAUDE.md` will pull the other guidelines in turn.
-
-### Option 2 — Drop into the per-project user-config directory
-
-Claude Code reads memory from `D:\.claude\projects\<slugified-cwd>\memory\MEMORY.md`. Add a pointer there:
+It appends (or updates in place) a marked block inside the user `CLAUDE.md`:
 
 ```md
-- [Toolbox entry](../../../../../Users/metal/workspace/02-personal/agent-toolbox/CLAUDE.md) — load before any dev task
+<!-- agent-toolbox:begin -->
+@<abs-path-to>/agent-toolbox/CLAUDE.md
+<!-- agent-toolbox:end -->
 ```
 
-The agent follows the link the first time a task starts.
+The block is idempotent — re-running after moving the toolbox rewrites the path, it doesn't duplicate the import. Nested `@`-imports inside the toolbox's `CLAUDE.md` pull the guidelines in turn.
 
-### Option 3 — Copy on demand
+Works on any machine: just clone the repo wherever, run `./install.sh`, done. The script reads the host's own `CLAUDE_CONFIG_DIR` / `$HOME`, so no machine-specific tweaks.
 
-If you want a frozen snapshot per working session, copy the toolbox into `D:\.claude\projects\<project-slug>\workflow\`. Tradeoff: the snapshot drifts from the upstream repo.
+### Option 2 — Manual `@`-import
+
+If you'd rather edit by hand, add this line to `<config-dir>/CLAUDE.md` (create the file if needed):
+
+```md
+@<absolute-path-to>/agent-toolbox/CLAUDE.md
+```
+
+Same result, without the idempotency / marker-block safety net.
+
+### Option 3 — Per-project memory pointer
+
+Claude Code reads memory from `<config-dir>/projects/<slugified-cwd>/memory/MEMORY.md`. Drop a pointer entry there if you want the toolbox to load only when working in a specific project, not globally. The agent follows the link the first time a task starts.
+
+### Option 4 — Frozen snapshot
+
+Copy the toolbox into `<config-dir>/projects/<project-slug>/workflow/` for a version-pinned snapshot per project. Tradeoff: the snapshot drifts from the upstream repo.
 
 ## Maintenance
 

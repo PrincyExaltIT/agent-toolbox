@@ -82,6 +82,7 @@ The compiled `dist/` is committed so installing does not require a build step on
 Options common to every install-style command:
 
 ```
+--uninstall              (install only) deactivate instead of activating
 --config-dir <dir>       override the Claude user config dir
 --vscode-settings <path> override the VS Code user settings.json path
 --codex-home <dir>       override the Codex home dir (default ~/.codex)
@@ -89,6 +90,8 @@ Options common to every install-style command:
 --dry-run                preview without writing
 --yes                    skip the interactive prompt and install on every surface
 ```
+
+`surface disable <surface> --profile <name>` is the equivalent of `install <profile> --<surface> --uninstall`; both end up calling the same uninstall path per surface.
 
 ## Surfaces
 
@@ -191,6 +194,8 @@ Copilot VS Code and Codex load the agent body eagerly when the agent is activate
 ## Constraints and caveats
 
 - **Node ≥ 20** required.
-- **Windows** is supported via forward-slash-normalised paths everywhere. Codex symlink may fall back to a plain copy if Developer Mode is off — the CLI handles the fallback transparently and reports which mode was used.
+- **Windows + direct git sources are broken.** Do **not** run `npm install -g github:PrincyExaltIT/agent-toolbox` on Windows — npm creates a symlink into `_cacache/tmp/git-clone…` that it then wipes, leaving a broken dangling symlink (see [npm/cli#4031](https://github.com/npm/cli/issues/4031), [#5189](https://github.com/npm/cli/issues/5189), [#6033](https://github.com/npm/cli/issues/6033)). macOS / Linux work fine either way, but the registry path above is the only cross-platform single-command install. For local dev on any OS, clone + `npm install -g .` also works (symlink to a permanent local checkout).
+- **Windows paths** everywhere else are forward-slash-normalised. Codex symlink may fall back to a plain copy if Developer Mode is off — the CLI handles the fallback transparently and reports which mode was used.
 - **Zero trace in the target project** — all writes are user-scope (Claude user config, VS Code user profile, Codex home, shell rc). The project repo stays clean.
 - Generated artifacts (`*.agent.md`, `AGENTS.md`) live under `~/.agent-toolbox/generated/` — never inside the package tree, never inside the target project.
+- **Never commit your `~/.npmrc`.** It holds the GitHub PAT. Treat a leaked PAT as compromised — revoke it at <https://github.com/settings/tokens> and regenerate.

@@ -59,12 +59,22 @@ When the package graduates from private:
 
 ### Usage
 
+Two binaries are installed: the long-form `agent-toolbox` and the short alias `at`. The rest of this README uses `at`.
+
 ```bash
-agent-toolbox install frequencies                           # interactive surface picker
-agent-toolbox install frequencies --claude --copilot-vscode # non-interactive subset
-agent-toolbox install frequencies --all --dry-run           # preview
-agent-toolbox status
-agent-toolbox list
+at                                              # dashboard: installed profiles + available + command hints
+at install frequencies                          # interactive surface picker
+at install frequencies -c -v                    # short flags (claude + copilot-vs)
+at install frequencies -s c,vs,cli              # CSV shortcut — same result
+at install frequencies --all --dry-run          # preview
+at uninstall frequencies --codex                # remove one surface
+at new my-csharp-app                            # scaffold a new profile (wizard)
+at switch frequencies
+at surface enable copilot-cli --profile frequencies
+at list
+at status
+at status --json | jq .                         # machine-readable output
+at completion install                           # hook tab-completion into your shell
 ```
 
 The compiled `dist/` is committed so installing does not require a build step on the target machine.
@@ -73,25 +83,41 @@ The compiled `dist/` is committed so installing does not require a build step on
 
 | Command | Purpose |
 |---|---|
-| `install <profile> [--claude --copilot-vscode --copilot-cli --codex] [--all] [--uninstall] [--dry-run]` | Bootstrap (or remove) a profile on selected surfaces. Without any surface flag, a `@clack/prompts` checkbox asks. |
+| `install <profile> [surface flags] [--dry-run]` | Install a profile on selected surfaces. No surface flag in a TTY → interactive picker. |
+| `uninstall <profile> [surface flags] [--dry-run]` | Remove a profile from selected surfaces. |
 | `switch <profile>` | Swap the currently-installed profile for this one on every surface another profile already occupies. |
 | `surface enable <surface> --profile <name>` / `surface disable <surface> --profile <name>` | Toggle one surface for one profile. |
-| `list` | Show every available profile (bundled + `~/.agent-toolbox/profiles/`). |
-| `status` | Print which surface of which profile is live, verified against the filesystem. |
+| `new <profile> [--description --shared --stacks --yes]` | Scaffold a new user-scope profile at `~/.agent-toolbox/profiles/<name>/`. |
+| `list [--json]` | Show every available profile (bundled + `~/.agent-toolbox/profiles/`). |
+| `status [--json]` | Show which profile is installed on each surface (verified against the filesystem). |
+| `completion install` / `completion uninstall` | Hook or unhook shell tab-completion (bash/zsh/fish). |
 
-Options common to every install-style command:
+### Surface flags and shortcodes
+
+All install / uninstall / switch / surface commands accept:
+
+| Long | Short | `--surfaces` code |
+|---|---|---|
+| `--claude` | `-c` | `c` or `claude` |
+| `--copilot-vs` | `-v` | `vs` or `copilot-vs` |
+| `--copilot-cli` | `-l` | `cli` or `copilot-cli` |
+| `--codex` | `-x` | `x` or `codex` |
+| `--all` | — | `all` |
+
+`--surfaces <csv>` (`-s`) combines any subset, e.g. `at install freq -s c,vs,cli`. Mix-and-match with the individual flags — they all merge into one set.
+
+### Options common to every install-style command
 
 ```
---uninstall              (install only) deactivate instead of activating
+--dry-run                preview without writing
+--yes                    skip the interactive prompt and install on every surface
 --config-dir <dir>       override the Claude user config dir
 --vscode-settings <path> override the VS Code user settings.json path
 --codex-home <dir>       override the Codex home dir (default ~/.codex)
 --write-shell-rc <file>  materialize the Copilot CLI export in this shell rc
---dry-run                preview without writing
---yes                    skip the interactive prompt and install on every surface
 ```
 
-`surface disable <surface> --profile <name>` is the equivalent of `install <profile> --<surface> --uninstall`; both end up calling the same uninstall path per surface.
+`at uninstall <profile> --codex` is the first-class way to remove one surface; `at surface disable codex --profile <name>` is a synonym.
 
 ## Surfaces
 
@@ -166,26 +192,26 @@ User profiles shadow bundled ones of the same name, and may reference bundled `s
 
 ## Adding a new profile
 
+Use the wizard — it picks the right shared + stacks for you and writes the three skeleton files:
+
 ```bash
-mkdir -p ~/.agent-toolbox/profiles/my-csharp-app
-cat > ~/.agent-toolbox/profiles/my-csharp-app/profile.yaml <<'YAML'
-name: my-csharp-app
-description: My C# / .NET side project
-shared:
-  - git-guidelines.md
-  - testing-guidelines.md
-  - unit-testing.instructions.md
-stacks:
-  - csharp-dotnet
-project_context: project-context.md
-copilot:
-  description: My C# .NET agent
-YAML
-# Drop a project-context.md and a CLAUDE.md skeleton (@-imports) in the same dir.
-agent-toolbox install my-csharp-app
+at new my-csharp-app
+# Follow the prompts: description, shared guidelines, stacks, Copilot agent description.
+# Then edit project-context.md with architecture / commands / rules and run:
+at install my-csharp-app
 ```
 
-If `stacks/csharp-dotnet/` doesn't exist bundled, add it under `~/.agent-toolbox/stacks/csharp-dotnet/` with the stack's guideline files.
+Non-interactive form for scripts:
+
+```bash
+at new my-csharp-app \
+  --description "My C# / .NET side project" \
+  --shared git-guidelines.md,testing-guidelines.md,unit-testing.instructions.md \
+  --stacks csharp-dotnet \
+  --yes
+```
+
+If `stacks/csharp-dotnet/` does not exist yet (neither bundled nor user), create it manually under `~/.agent-toolbox/stacks/csharp-dotnet/` with your stack's guideline files — the stack scaffolder is planned but not shipped yet.
 
 ## Why thin agents
 

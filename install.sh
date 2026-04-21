@@ -317,12 +317,24 @@ surface_copilot_vscode() {
   fi
 
   mkdir -p "$dir"
-  # Read current JSON (empty {} if missing). jq will fail if content has JSONC comments;
-  # surface a clear error so the user can clean them manually.
+  # VS Code uses JSONC: line/block comments and trailing commas are allowed,
+  # but jq only parses strict JSON. Preprocess with a string-aware perl regex:
+  # the first alternation captures complete JSON strings (with escaped chars)
+  # so their content (URLs containing //, braces, ...) is passed through
+  # unchanged; comments are stripped and trailing commas collapse to just their
+  # closing bracket. The user loses comments and trailing commas when the file
+  # is written back — VS Code still accepts the result.
+  #
+  # Uses # as the regex delimiter so braces in the character class do not
+  # confuse perl's brace-counting substitution parser.
+  jsonc_to_json() {
+    perl -0777 -pe 's#("(?:\\.|[^"\\])*")|//[^\n]*|/\*.*?\*/|,(\s*[}\]])#defined $1 ? $1 : defined $2 ? $2 : ""#gse' "$1"
+  }
+
   local current
   if [[ -f "$VSCODE_SETTINGS" && -s "$VSCODE_SETTINGS" ]]; then
-    if ! current="$(jq '.' "$VSCODE_SETTINGS" 2>/dev/null)"; then
-      echo "  error          : jq could not parse $VSCODE_SETTINGS (JSONC comments not supported)" >&2
+    if ! current="$(jsonc_to_json "$VSCODE_SETTINGS" | jq '.' 2>/dev/null)"; then
+      echo "  error          : could not parse $VSCODE_SETTINGS as JSON/JSONC" >&2
       echo "                   open Code → 'Preferences: Open User Settings (JSON)' and add manually:" >&2
       if [[ "$UNINSTALL" -eq 1 ]]; then
         echo "                     remove \"$PROFILE_DIR\" from \"chat.agentFilesLocations\"" >&2

@@ -199,11 +199,17 @@ generate_profile() {
     return 1
   fi
 
-  local copilot_description copilot_tools copilot_model
+  local copilot_name copilot_description copilot_argument_hint copilot_tools copilot_model
+  copilot_name="$(yaml_nested_scalar "$manifest" "copilot" "name" || true)"
   copilot_description="$(yaml_nested_scalar "$manifest" "copilot" "description")"
+  copilot_argument_hint="$(yaml_nested_scalar "$manifest" "copilot" "argument-hint" || true)"
   mapfile -t copilot_tools < <(yaml_nested_inline_array "$manifest" "copilot" "tools")
   copilot_model="$(yaml_nested_scalar "$manifest" "copilot" "model" || true)"
 
+  # Fallbacks.
+  if [[ -z "$copilot_name" ]]; then
+    copilot_name="$profile"
+  fi
   if [[ -z "$copilot_description" ]]; then
     copilot_description="$(yaml_scalar "$manifest" "description")"
   fi
@@ -214,18 +220,26 @@ generate_profile() {
   tmp_chatmode="$(mktemp)"
   tmp_agents="$(mktemp)"
 
-  # Chatmode frontmatter
+  # Agent frontmatter. VS Code expects `name` (picker label) and `description`
+  # at minimum. `tools` is optional — when omitted VS Code allows every enabled
+  # tool, which is what we want for a reference agent. Keep the set authored in
+  # the manifest reachable via a commented template so the user can uncomment
+  # and refine later without guessing VS Code's tool IDs.
   {
     printf -- '---\n'
+    printf -- 'name: %s\n' "$copilot_name"
     printf -- 'description: %s\n' "$copilot_description"
+    if [[ -n "$copilot_argument_hint" ]]; then
+      printf -- 'argument-hint: %s\n' "$copilot_argument_hint"
+    fi
     if [[ "${#copilot_tools[@]}" -gt 0 ]]; then
-      printf -- 'tools: ['
+      printf -- '# tools: ['
       local sep=""
       for t in "${copilot_tools[@]}"; do
         printf -- "%s'%s'" "$sep" "$t"
         sep=", "
       done
-      printf -- ']\n'
+      printf -- "] # suggested (uncomment + adjust to VS Code's tool IDs)\n"
     fi
     if [[ -n "$copilot_model" ]]; then
       printf -- 'model: %s\n' "$copilot_model"

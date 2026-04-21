@@ -295,87 +295,69 @@ surface_claude() {
 surface_copilot_vscode() {
   echo
   echo "[copilot-vscode]"
-  echo "  settings.json  : $VSCODE_SETTINGS"
-  if [[ "$UNINSTALL" -eq 0 ]]; then
-    echo "  profile dir    : $PROFILE_DIR"
-  fi
+  # VS Code scans $USER/prompts/ for *.agent.md to populate the Copilot Chat
+  # agents picker. The chat.agentFilesLocations setting is a hint some VS Code
+  # versions honour, but in practice the agents picker only lists files that
+  # live in the prompts folder, so install has to copy the generated artifact
+  # there. The prompts folder sits next to settings.json — derive it from the
+  # settings.json path so --vscode-settings remains the single override point.
+  local vscode_user_dir prompts_dir agent_src agent_dst
+  vscode_user_dir="$(dirname "$VSCODE_SETTINGS")"
+  prompts_dir="$vscode_user_dir/prompts"
+  agent_src="$PROFILE_DIR/$PROFILE.agent.md"
+  agent_dst="$prompts_dir/$PROFILE.agent.md"
 
-  local dir; dir="$(dirname "$VSCODE_SETTINGS")"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    if [[ "$UNINSTALL" -eq 1 ]]; then
-      echo "  plan           : would remove $PROFILE_DIR from chat.agentFilesLocations"
-    else
-      echo "  plan           : would add $PROFILE_DIR to chat.agentFilesLocations (deduped)"
-    fi
-    command -v jq >/dev/null 2>&1 || echo "  warn           : jq not found — real run will fail until jq is installed"
-    return 0
-  fi
+  echo "  prompts dir    : $prompts_dir"
+  echo "  source         : $agent_src"
+  echo "  destination    : $agent_dst"
 
-  if ! command -v jq >/dev/null 2>&1; then
-    echo "  error          : jq is required for safe JSON edits — install it (https://jqlang.org) and rerun" >&2
+  if [[ "$UNINSTALL" -eq 0 && ! -f "$agent_src" ]]; then
+    echo "  error          : $agent_src is missing — run scripts/generate-chatmode.sh $PROFILE first" >&2
     return 1
   fi
 
-  mkdir -p "$dir"
-  # VS Code uses JSONC: line/block comments and trailing commas are allowed,
-  # but jq only parses strict JSON. Preprocess with a string-aware perl regex:
-  # the first alternation captures complete JSON strings (with escaped chars)
-  # so their content (URLs containing //, braces, ...) is passed through
-  # unchanged; comments are stripped and trailing commas collapse to just their
-  # closing bracket. The user loses comments and trailing commas when the file
-  # is written back — VS Code still accepts the result.
-  #
-  # Uses # as the regex delimiter so braces in the character class do not
-  # confuse perl's brace-counting substitution parser.
-  jsonc_to_json() {
-    perl -0777 -pe 's#("(?:\\.|[^"\\])*")|//[^\n]*|/\*.*?\*/|,(\s*[}\]])#defined $1 ? $1 : defined $2 ? $2 : ""#gse' "$1"
-  }
-
-  local current
-  if [[ -f "$VSCODE_SETTINGS" && -s "$VSCODE_SETTINGS" ]]; then
-    if ! current="$(jsonc_to_json "$VSCODE_SETTINGS" | jq '.' 2>/dev/null)"; then
-      echo "  error          : could not parse $VSCODE_SETTINGS as JSON/JSONC" >&2
-      echo "                   open Code → 'Preferences: Open User Settings (JSON)' and add manually:" >&2
-      if [[ "$UNINSTALL" -eq 1 ]]; then
-        echo "                     remove \"$PROFILE_DIR\" from \"chat.agentFilesLocations\"" >&2
-      else
-        echo "                     add \"$PROFILE_DIR\" to \"chat.agentFilesLocations\"" >&2
-      fi
-      return 1
+  local action
+  if [[ "$UNINSTALL" -eq 1 ]]; then
+    if [[ -f "$agent_dst" ]]; then
+      action="remove"
+    else
+      action="noop"
     fi
   else
-    current='{}'
+    if [[ -f "$agent_dst" ]] && cmp -s "$agent_src" "$agent_dst"; then
+      action="noop-up-to-date"
+    else
+      action="copy"
+    fi
   fi
 
-  local updated
-  if [[ "$UNINSTALL" -eq 1 ]]; then
-    updated="$(jq --arg p "$PROFILE_DIR" '
-      if has("chat.agentFilesLocations") then
-        .["chat.agentFilesLocations"] |= map(select(. != $p))
-        | if (.["chat.agentFilesLocations"] | length) == 0 then del(.["chat.agentFilesLocations"]) else . end
-      else . end
-    ' <<<"$current")"
-  else
-    updated="$(jq --arg p "$PROFILE_DIR" '
-      .["chat.agentFilesLocations"] = (
-        (.["chat.agentFilesLocations"] // []) + [$p] | unique
-      )
-    ' <<<"$current")"
-  fi
-
-  if [[ "$updated" == "$current" ]]; then
-    echo "  done           : no change (already in desired state)"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    case "$action" in
+      noop)             echo "  plan           : no installed agent file at $agent_dst; nothing to remove" ;;
+      noop-up-to-date)  echo "  plan           : $agent_dst already matches source; nothing to do" ;;
+      remove)           echo "  plan           : would remove $agent_dst" ;;
+      copy)             echo "  plan           : would copy $agent_src to $agent_dst" ;;
+    esac
     return 0
   fi
 
-  local tmp; tmp="$(mktemp)"
-  printf '%s\n' "$updated" > "$tmp"
-  mv "$tmp" "$VSCODE_SETTINGS"
-  if [[ "$UNINSTALL" -eq 1 ]]; then
-    echo "  done           : removed $PROFILE_DIR from chat.agentFilesLocations"
-  else
-    echo "  done           : added $PROFILE_DIR to chat.agentFilesLocations"
-  fi
+  case "$action" in
+    noop)
+      echo "  done           : nothing to remove"
+      ;;
+    noop-up-to-date)
+      echo "  done           : already up to date"
+      ;;
+    remove)
+      rm -f "$agent_dst"
+      echo "  done           : removed $agent_dst"
+      ;;
+    copy)
+      mkdir -p "$prompts_dir"
+      cp "$agent_src" "$agent_dst"
+      echo "  done           : copied agent file"
+      ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------

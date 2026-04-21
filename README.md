@@ -104,7 +104,7 @@ Activates (or deactivates with `--uninstall`) a profile across up to three surfa
 | Surface | What `install.sh` does | Resolution order | Effect |
 |---|---|---|---|
 | `claude` | Writes a per-profile marker block `<!-- agent-toolbox:<profile>:begin/end -->` into `<config-dir>/CLAUDE.md` with an `@`-import to `profiles/<profile>/CLAUDE.md`. | `--config-dir` → `$CLAUDE_CONFIG_DIR` → `$HOME/.claude`. | Claude Code loads the profile automatically on every session. |
-| `copilot-vscode` | Adds the profile folder path to the `chat.agentFilesLocations` array in the VS Code user `settings.json`, deduped. Requires `jq`. | `--vscode-settings` → platform default (`$APPDATA/Code/User/settings.json` on Windows, `$HOME/Library/Application Support/Code/User/settings.json` on macOS, `$HOME/.config/Code/User/settings.json` on Linux). | After restarting VS Code, the custom agent appears in the Copilot Chat agents dropdown (type `/agents` to open the configure menu). |
+| `copilot-vscode` | Copies `profiles/<profile>/<profile>.agent.md` into the VS Code user `prompts/` folder (sibling of `settings.json`). No `jq` required. | `--vscode-settings` → platform default (`$APPDATA/Code/User/settings.json` on Windows, `$HOME/Library/Application Support/Code/User/settings.json` on macOS, `$HOME/.config/Code/User/settings.json` on Linux); the prompts folder is derived from that path. | After restarting VS Code, the custom agent appears in the Copilot Chat agents picker. Open it via `Chat: Configure Custom Agents...` in the command palette. |
 | `copilot-cli` | Default: prints a `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` export to stdout. With `--write-shell-rc <file>`: appends (or updates) a profile-scoped marker block in that rc file. | — | Copilot CLI picks up `profiles/<profile>/AGENTS.md` on the next shell. |
 
 ### Flags
@@ -123,8 +123,7 @@ Marker blocks are per-profile (`<!-- agent-toolbox:<profile>:... -->` for CLAUDE
 
 ### Caveats
 
-- **JSONC comments in VS Code settings.** `jq` doesn't parse JSONC; if the user `settings.json` contains `//` comments, the script surfaces a clear error with a manual-edit fallback (VS Code → Preferences: Open User Settings (JSON)).
-- **Requires jq** for the `copilot-vscode` surface. Dry-run still works without it and warns.
+- **Copilot VS Code agents picker reads only from `prompts/`.** Absolute paths registered via `chat.agentFilesLocations` are not honoured in current VS Code versions, so `install.sh` copies the generated `.agent.md` into the prompts folder. After editing a referenced shared / stack / profile file, re-run the generator and the install to refresh the copy.
 - **Windows paths.** The script uses `cygpath -m` under Git Bash so paths written to config files are native (`C:/...`), not msys (`/c/...`).
 
 ## Maintenance

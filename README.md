@@ -71,12 +71,14 @@ description: Loads shared, stack, and project context for Frequencies Popscore.
 @./project-context.md
 ```
 
-### Copilot artifacts (generated)
+### Copilot artifacts (generated, gitignored)
 
-Copilot does not resolve imports, so each profile needs a flat artifact containing everything it references. `scripts/generate-chatmode.sh` composes them:
+Copilot does not resolve imports the way Claude does, so each profile gets a flat artifact that tells Copilot which guideline files to read on demand via its read tool. `scripts/generate-chatmode.sh` emits:
 
-- `profiles/<name>/<name>.agent.md` — Copilot VS Code **custom agent** with `description` / `tools` frontmatter. After restarting VS Code, the agent appears in the Copilot Chat **agents dropdown** (it is no longer invoked via `@<name>` — that syntax was used for the older chat-mode API before VS Code rebranded them as custom agents and renamed the extension from `.chatmode.md` to `.agent.md`).
+- `profiles/<name>/<name>.agent.md` — Copilot VS Code custom agent (frontmatter + a thin body listing the guidelines with their absolute paths). Appears in the Copilot Chat agents picker after a VS Code restart.
 - `profiles/<name>/AGENTS.md` — Copilot CLI entry (same body without frontmatter).
+
+Both files bake the machine-local toolbox path into their body, so they are **machine-specific** and **gitignored**. `install.sh` regenerates them automatically before deploying to a Copilot surface — no manual `generate-chatmode.sh` step is required in the install flow.
 
 Re-run after editing any referenced file:
 

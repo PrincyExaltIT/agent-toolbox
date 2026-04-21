@@ -1,0 +1,6 @@
+# Generated per machine by scripts/generate-chatmode.sh — contain absolute paths
+# specific to the local checkout. Never commit; install.sh regenerates them on
+# demand before deploying to the target (Copilot VS Code prompts folder,
+# Copilot CLI profile dir, etc.).
+profiles/*/*.agent.md
+profiles/*/AGENTS.md

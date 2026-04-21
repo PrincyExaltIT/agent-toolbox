@@ -194,6 +194,33 @@ banner() {
   fi
 }
 
+# Generated artifacts (.agent.md, AGENTS.md) bake the machine-local toolbox
+# path into their body, so they must be regenerated on every machine and
+# every time the toolbox folder moves. They are gitignored. Install
+# regenerates them before deploying; uninstall leaves the sources alone.
+ensure_artifacts_generated() {
+  if [[ "$UNINSTALL" -eq 1 || "$DRY_RUN" -eq 1 ]]; then
+    return 0
+  fi
+  local needs_artifacts=0
+  for s in "${SURFACES[@]}"; do
+    if [[ "$s" == "copilot-vscode" || "$s" == "copilot-cli" ]]; then
+      needs_artifacts=1
+    fi
+  done
+  if [[ "$needs_artifacts" -eq 0 ]]; then
+    return 0
+  fi
+  local generator="$TOOLBOX_PATH/scripts/generate-chatmode.sh"
+  if [[ ! -x "$generator" ]]; then
+    echo "error: generator not found or not executable: $generator" >&2
+    return 1
+  fi
+  echo
+  echo "[regenerate]"
+  "$generator" "$PROFILE" | sed 's/^/  /'
+}
+
 # ---------------------------------------------------------------------------
 # Claude surface
 # ---------------------------------------------------------------------------
@@ -459,6 +486,7 @@ surface_copilot_cli() {
 # ---------------------------------------------------------------------------
 
 banner
+ensure_artifacts_generated || exit 1
 
 failures=0
 for s in "${SURFACES[@]}"; do

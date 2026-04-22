@@ -159,6 +159,7 @@ atb install my-project -s c,vs,cli   # CSV shortcut
 | `switch <profile>` | Swap the active profile (same surfaces) |
 | `surface enable <s> --profile <p>` / `surface disable <s> --profile <p>` | Toggle one surface |
 | `on` / `off` | Pause / resume — remembers which surfaces were active |
+| `pull` | Pull the latest guidelines from the remote (content root must be a git repo) |
 | `doctor` | Check that the content root, profiles, and surfaces are correctly configured |
 | `list` / `status` | List available profiles / check what is installed where |
 | `completion install` / `completion uninstall` | Shell tab-completion |

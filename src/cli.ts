@@ -21,6 +21,7 @@ import {
 } from './commands/completion.js';
 import { off, on } from './commands/toggle.js';
 import { doctor } from './commands/doctor.js';
+import { pull } from './commands/pull.js';
 import {
   configInit,
   configGet,
@@ -181,6 +182,13 @@ program
   .description('Check that the content root, profiles, and surfaces are correctly configured')
   .action(() => {
     doctor();
+  });
+
+program
+  .command('pull')
+  .description('Pull the latest guidelines from the remote (content root must be a git repo)')
+  .action(() => {
+    pull();
   });
 
 program

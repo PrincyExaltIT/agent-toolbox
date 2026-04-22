@@ -1,6 +1,6 @@
 {
   "name": "@princyexaltit/agent-toolbox",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "CLI to install and sync your AI coding guidelines across Claude Code, Copilot, and Codex — one profile per project.",
   "type": "module",
   "bin": {

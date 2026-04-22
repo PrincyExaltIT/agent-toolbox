@@ -106,6 +106,24 @@ Done. Every agent now loads your guidelines from your files — nothing is inlin
 
 ---
 
+## Project config
+
+Pin a profile to a project so teammates don't need to know its name:
+
+```bash
+atb init                    # interactive — pick a profile, writes .agent-toolbox.yaml
+atb init --profile myapp    # non-interactive
+```
+
+Commit `.agent-toolbox.yaml`. Any team member can then install with no argument:
+
+```bash
+atb install                 # reads .agent-toolbox.yaml → installs the right profile
+atb install --all           # same, on every surface
+```
+
+---
+
 ## Switching between projects
 
 One profile is active at a time.
@@ -159,6 +177,7 @@ atb install my-project -s c,vs,cli   # CSV shortcut
 | `switch <profile>` | Swap the active profile (same surfaces) |
 | `surface enable <s> --profile <p>` / `surface disable <s> --profile <p>` | Toggle one surface |
 | `on` / `off` | Pause / resume — remembers which surfaces were active |
+| `init` | Create a `.agent-toolbox.yaml` in the current directory to pin a profile to this project |
 | `pull` | Pull the latest guidelines from the remote (content root must be a git repo) |
 | `doctor` | Check that the content root, profiles, and surfaces are correctly configured |
 | `list` / `status` | List available profiles / check what is installed where |

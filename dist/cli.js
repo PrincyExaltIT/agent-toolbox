@@ -18,6 +18,8 @@ import { installCompletion, uninstallCompletion, runCompletionHook, } from './co
 import { off, on } from './commands/toggle.js';
 import { doctor } from './commands/doctor.js';
 import { pull } from './commands/pull.js';
+import { init } from './commands/init.js';
+import { readProjectConfig } from './project.js';
 import { configInit, configGet, configSet, configPath, configShow, } from './commands/config.js';
 import { ContentRootNotConfiguredError } from './config.js';
 // Completion must run before commander parses anything — omelette short-circuits
@@ -44,9 +46,9 @@ const sharedInstallOptions = (cmd) => cmd
     .option('--write-shell-rc <file>', 'materialize the Copilot CLI export in this shell rc');
 sharedInstallOptions(program
     .command('install')
-    .argument('<profile>', 'profile name (bundled or ~/.agent-toolbox/profiles/<name>)')
+    .argument('[profile]', 'profile name — if omitted, reads from .agent-toolbox.yaml in the current directory')
     .description('Install a profile on one or more agent surfaces')).action(async (profile, opts) => {
-    await install(profile, opts);
+    await install(profile ?? readProjectConfig().profile, opts);
 });
 sharedInstallOptions(program
     .command('uninstall')
@@ -146,6 +148,14 @@ program
     .description('Pull the latest guidelines from the remote (content root must be a git repo)')
     .action(() => {
     pull();
+});
+program
+    .command('init')
+    .description('Create a .agent-toolbox.yaml in the current directory to pin a profile to this project')
+    .option('--profile <name>', 'profile name (skips the interactive picker)')
+    .option('--yes', 'skip prompts (requires --profile)')
+    .action(async (opts) => {
+    await init(opts);
 });
 program
     .command('list')

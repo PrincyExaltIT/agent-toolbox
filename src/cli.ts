@@ -22,6 +22,8 @@ import {
 import { off, on } from './commands/toggle.js';
 import { doctor } from './commands/doctor.js';
 import { pull } from './commands/pull.js';
+import { init } from './commands/init.js';
+import { readProjectConfig } from './project.js';
 import {
   configInit,
   configGet,
@@ -65,10 +67,10 @@ const sharedInstallOptions = (cmd: Command) =>
 sharedInstallOptions(
   program
     .command('install')
-    .argument('<profile>', 'profile name (bundled or ~/.agent-toolbox/profiles/<name>)')
+    .argument('[profile]', 'profile name — if omitted, reads from .agent-toolbox.yaml in the current directory')
     .description('Install a profile on one or more agent surfaces')
-).action(async (profile: string, opts) => {
-  await install(profile, opts);
+).action(async (profile: string | undefined, opts) => {
+  await install(profile ?? readProjectConfig().profile, opts);
 });
 
 sharedInstallOptions(
@@ -189,6 +191,15 @@ program
   .description('Pull the latest guidelines from the remote (content root must be a git repo)')
   .action(() => {
     pull();
+  });
+
+program
+  .command('init')
+  .description('Create a .agent-toolbox.yaml in the current directory to pin a profile to this project')
+  .option('--profile <name>', 'profile name (skips the interactive picker)')
+  .option('--yes', 'skip prompts (requires --profile)')
+  .action(async (opts) => {
+    await init(opts);
   });
 
 program

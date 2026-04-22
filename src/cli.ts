@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
+import kleur from 'kleur';
 import { install } from './commands/install.js';
 import { uninstall } from './commands/uninstall.js';
 import { list } from './commands/list.js';
@@ -19,6 +20,7 @@ import {
   runCompletionHook,
 } from './commands/completion.js';
 import { off, on } from './commands/toggle.js';
+import { doctor } from './commands/doctor.js';
 import {
   configInit,
   configGet,
@@ -175,6 +177,13 @@ program
   });
 
 program
+  .command('doctor')
+  .description('Check that the content root, profiles, and surfaces are correctly configured')
+  .action(() => {
+    doctor();
+  });
+
+program
   .command('list')
   .description('List available profiles (bundled + ~/.agent-toolbox/profiles/)')
   .option('--json', 'emit machine-readable JSON')
@@ -262,11 +271,11 @@ if (process.argv.length === 2) {
 }
 
 program.parseAsync(process.argv).catch((err) => {
+  const msg = err instanceof Error ? err.message : String(err);
   if (err instanceof ContentRootNotConfiguredError) {
-    console.error(err.message);
-    console.error('→ Start with `atb config init`.');
+    console.error(msg);
     process.exit(1);
   }
-  console.error(err instanceof Error ? err.message : err);
+  console.error(kleur.red('Error:'), msg);
   process.exit(1);
 });

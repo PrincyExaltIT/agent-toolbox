@@ -9,7 +9,7 @@ import { profilesRoot, sharedRoot, stacksRoot } from './paths.js';
 export function locateProfile(name) {
     const dir = path.join(profilesRoot(), name);
     if (!isProfileDir(dir)) {
-        throw new Error(`Profile "${name}" not found at ${dir}`);
+        throw new Error(`Profile "${name}" not found at ${dir}\n→ Run \`atb list\` to see available profiles, or \`atb new profile ${name}\` to create it.`);
     }
     return { name, dir, manifest: readManifest(dir) };
 }
@@ -34,14 +34,14 @@ function isProfileDir(dir) {
 export function resolveShared(entry) {
     const p = path.join(sharedRoot(), entry);
     if (!fs.existsSync(p)) {
-        throw new Error(`Shared guideline "${entry}" not found at ${p}`);
+        throw new Error(`Shared guideline "${entry}" not found at ${p}\n→ Run \`atb new shared ${entry.replace(/\.md$/, '')}\` to create it, or check the filename in profile.yaml.`);
     }
     return p;
 }
 export function resolveStack(stack) {
     const p = path.join(stacksRoot(), stack);
     if (!fs.existsSync(p)) {
-        throw new Error(`Stack "${stack}" not found at ${p}`);
+        throw new Error(`Stack "${stack}" not found at ${p}\n→ Run \`atb new stack ${stack}\` to create it, or check the stack name in profile.yaml.`);
     }
     return p;
 }

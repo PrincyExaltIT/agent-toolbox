@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.2
+
+### New
+
+- `atb doctor` — verifies the full setup in one command: config file, content root, profiles (manifest valid, shared refs, stack refs, project_context), surface readiness (Claude config dir, VS Code prompts, Codex home), and state integrity. Exits 1 on errors, 0 on warnings only.
+
+### Improved
+
+- `atb status` now shows paused profiles with their surface list and a `atb on` resume hint. State drift links to `atb doctor`. Summary line added.
+- Error messages for missing profile, shared guideline, and stack now include an actionable `→` hint pointing at the right command.
+- Top-level error output prefixed with red `Error:` label for readability.
+
+### Docs
+
+- README rewritten: problem-first opening, 3-step quickstart, `profile.yaml` example, `atb doctor` in the commands table.
+- `package.json` description updated for clarity.
+
 ## 0.3.0
 
 ### Breaking changes

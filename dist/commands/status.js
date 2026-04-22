@@ -21,23 +21,66 @@ export function status(opts = {}) {
         return;
     }
     if (profileNames.length === 0) {
-        console.log(kleur.gray('No profiles installed. Run `agent-toolbox install <profile>`.'));
+        console.log(kleur.gray('No profiles installed.'));
+        console.log(kleur.gray('→ Run `atb install <profile>` to get started, or `atb list` to see what is available.'));
         return;
     }
+    let driftCount = 0;
     for (const name of profileNames) {
-        console.log(kleur.bold(`\nProfile: ${name}`));
-        for (const surface of ALL) {
-            const recorded = state.profiles[name].surfaces[surface];
-            const live = inspect(surface, name);
-            const icon = live.ok
-                ? kleur.green('✓')
-                : recorded
-                    ? kleur.yellow('!')
-                    : kleur.gray('–');
-            const label = surface.padEnd(16);
-            const detail = live.ok ? live.detail : recorded ? `state drift: ${recorded.detail}` : 'not installed';
-            console.log(`  ${icon} ${label} ${kleur.gray(detail)}`);
+        const prof = state.profiles[name];
+        const activeSurfaces = Object.keys(prof.surfaces);
+        const pausedSurfaces = Object.keys(prof.pausedSurfaces ?? {});
+        const isPaused = activeSurfaces.length === 0 && pausedSurfaces.length > 0;
+        const stateLabel = isPaused
+            ? kleur.yellow(' (paused)')
+            : activeSurfaces.length === 0
+                ? kleur.gray(' (no surfaces)')
+                : '';
+        console.log(`\n${kleur.bold(`Profile: ${name}`)}${stateLabel}`);
+        if (isPaused) {
+            console.log(kleur.gray(`  Paused surfaces: ${pausedSurfaces.join(', ')} — run \`atb on\` to resume`));
         }
+        for (const surface of ALL) {
+            const recorded = prof.surfaces[surface];
+            const live = inspect(surface, name);
+            let icon;
+            let detail;
+            if (live.ok) {
+                icon = kleur.green('✓');
+                detail = kleur.gray(live.detail);
+            }
+            else if (recorded) {
+                icon = kleur.yellow('!');
+                detail = kleur.yellow(`state drift — ${live.detail}`);
+                driftCount++;
+            }
+            else if (isPaused && pausedSurfaces.includes(surface)) {
+                icon = kleur.yellow('⏸');
+                detail = kleur.gray('paused');
+            }
+            else {
+                icon = kleur.gray('–');
+                detail = kleur.gray('not installed');
+            }
+            console.log(`  ${icon} ${surface.padEnd(18)} ${detail}`);
+        }
+    }
+    console.log('');
+    if (driftCount > 0) {
+        console.log(kleur.yellow(`${driftCount} surface${driftCount > 1 ? 's' : ''} recorded but not found on disk.`));
+        console.log(kleur.gray('→ Run `atb doctor` for a detailed diagnosis.'));
+    }
+    else {
+        const active = profileNames.filter((n) => Object.keys(state.profiles[n].surfaces).length > 0);
+        const paused = profileNames.filter((n) => Object.keys(state.profiles[n].surfaces).length === 0 &&
+            Object.keys(state.profiles[n].pausedSurfaces ?? {}).length > 0);
+        const parts = [];
+        if (active.length > 0)
+            parts.push(`${active.length} active`);
+        if (paused.length > 0)
+            parts.push(`${paused.length} paused`);
+        if (parts.length > 0)
+            console.log(kleur.gray(parts.join(', ') + '.'));
     }
 }
 function inspect(surface, profile) {

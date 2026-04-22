@@ -21,6 +21,7 @@ export async function stackAdd(nameOrUrl: string, opts: StackAddOptions): Promis
 
   if (isUrl) {
     url = nameOrUrl;
+    assertSafeUrl(url);
     name = inferNameFromUrl(url);
   } else {
     const spinner = p.spinner();
@@ -42,11 +43,12 @@ export async function stackAdd(nameOrUrl: string, opts: StackAddOptions): Promis
     }
 
     url = entry.repo;
-    name = entry.name;
+    assertSafeUrl(url);
+    name = resolveInStacksRoot(entry.name);
     version = entry.version;
   }
 
-  const dest = path.join(stacksRoot(), name);
+  const dest = resolveInStacksRoot(name);
 
   if (fs.existsSync(dest)) {
     throw new Error(
@@ -84,9 +86,13 @@ export async function stackAdd(nameOrUrl: string, opts: StackAddOptions): Promis
           version?: string;
         };
         if (meta.name && meta.name !== name) {
-          const canonical = path.join(stacksRoot(), meta.name);
-          fs.renameSync(dest, canonical);
-          name = meta.name;
+          const canonical = path.resolve(stacksRoot(), meta.name);
+          // Only rename when the canonical path stays inside stacksRoot.
+          if (canonical.startsWith(path.resolve(stacksRoot()) + path.sep)) {
+            fs.renameSync(dest, canonical);
+            name = meta.name;
+          }
+          // Otherwise keep the inferred name — silently ignore the unsafe value.
         }
         version = meta.version;
       } catch {
@@ -110,4 +116,25 @@ export async function stackAdd(nameOrUrl: string, opts: StackAddOptions): Promis
 function inferNameFromUrl(url: string): string {
   const base = url.replace(/\.git$/, '').split('/').pop() ?? 'stack';
   return base.replace(/^stack-/, '');
+}
+
+/** Throws if the URL scheme is not http(s). Prevents git ext:: transport RCE. */
+function assertSafeUrl(url: string): void {
+  if (!/^https?:\/\//i.test(url)) {
+    throw new Error(
+      `Refusing to clone "${url}" — only https:// URLs are supported.\n→ Use a valid GitHub https URL.`
+    );
+  }
+}
+
+/** Resolves a stack name to an absolute path and asserts it stays inside stacksRoot. */
+export function resolveInStacksRoot(name: string): string {
+  const root = path.resolve(stacksRoot());
+  const resolved = path.resolve(stacksRoot(), name);
+  if (!resolved.startsWith(root + path.sep)) {
+    throw new Error(
+      `Invalid stack name "${name}" — path must not contain ".." or path separators.\n→ List installed stacks with \`atb stack list\`.`
+    );
+  }
+  return resolved;
 }

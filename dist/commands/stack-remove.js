@@ -3,10 +3,11 @@ import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import kleur from 'kleur';
 import * as p from '@clack/prompts';
-import { stacksRoot, profilesRoot } from '../paths.js';
+import { profilesRoot } from '../paths.js';
 import { recordStackRemove } from '../state.js';
+import { resolveInStacksRoot } from './stack-add.js';
 export async function stackRemove(name, opts) {
-    const dir = path.join(stacksRoot(), name);
+    const dir = resolveInStacksRoot(name);
     if (!fs.existsSync(dir)) {
         throw new Error(`Stack "${name}" not found at ${dir}.\n→ List installed stacks with \`atb stack list\`.`);
     }

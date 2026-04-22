@@ -3,15 +3,16 @@ import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import kleur from 'kleur';
 import * as p from '@clack/prompts';
-import { stacksRoot, profilesRoot } from '../paths.js';
+import { profilesRoot } from '../paths.js';
 import { recordStackRemove } from '../state.js';
+import { resolveInStacksRoot } from './stack-add.js';
 
 export interface StackRemoveOptions {
   yes?: boolean;
 }
 
 export async function stackRemove(name: string, opts: StackRemoveOptions): Promise<void> {
-  const dir = path.join(stacksRoot(), name);
+  const dir = resolveInStacksRoot(name);
 
   if (!fs.existsSync(dir)) {
     throw new Error(

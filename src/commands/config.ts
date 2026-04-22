@@ -54,6 +54,19 @@ export async function configInit(opts: ConfigInitOptions): Promise<void> {
   root = normalise(path.resolve(root));
 
   if (opts.fromGit) {
+    // Warn if replacing an existing content root with a different path.
+    if (current.contentRoot && current.contentRoot !== root && !opts.yes) {
+      p.log.warn(`You already have a content root configured at ${current.contentRoot}.`);
+      p.log.warn(`This will replace it with ${root}.`);
+      p.log.warn(`Your files at ${current.contentRoot} will not be deleted.`);
+      p.log.info(`To restore later: \`atb config set root ${current.contentRoot}\``);
+      const confirm = await p.confirm({ message: 'Continue?' });
+      if (p.isCancel(confirm) || !confirm) {
+        p.cancel('Cancelled.');
+        return;
+      }
+    }
+
     if (fs.existsSync(root) && fs.readdirSync(root).length > 0) {
       throw new Error(
         `${root} already exists and is not empty.\n→ Use --root <new-path> to clone into a fresh directory.`

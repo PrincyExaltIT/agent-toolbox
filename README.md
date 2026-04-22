@@ -14,19 +14,10 @@ The package ships **no content**. You own everything.
 
 ## Install
 
-One-time per machine:
-
-1. Create a GitHub Personal Access Token at <https://github.com/settings/tokens> with `read:packages`.
-2. Add to your user-scope `~/.npmrc`:
-   ```
-   @princyexaltit:registry=https://npm.pkg.github.com
-   //npm.pkg.github.com/:_authToken=<YOUR_PAT>
-   ```
-3. Install globally:
-   ```bash
-   npm install -g @princyexaltit/agent-toolbox
-   atb --version   # 0.3.x
-   ```
+```bash
+npm install -g @princyexaltit/agent-toolbox
+atb --version   # 0.3.x
+```
 
 Both `agent-toolbox` and `atb` are installed. The rest of this README uses `atb`.
 

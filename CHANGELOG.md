@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.3
+
+### New
+
+- `atb stack add <name>` — install a stack from the public registry by name. The registry is fetched from GitHub; the stack repo is cloned into `<content-root>/stacks/<name>/`.
+- `atb stack add <github-url>` — install a stack directly from any GitHub URL without going through the registry. If the repo contains a `stack.yaml`, the canonical name and version are read from it.
+- `atb stack search <query>` — search the public registry by name, description, or tag. Pass `--json` for machine-readable output.
+- `atb stack list` — list all locally installed stacks with their source (`local` or `registry`) and repo URL. Pass `--json` for scripting.
+- `atb stack update [name]` — `git pull` inside a registry-managed stack directory. Omit `name` to update all registry stacks at once. Local stacks (not git-backed) are skipped with a warning.
+- `atb stack remove <name>` — delete a stack directory and remove it from state. Warns when active profiles reference the stack. Pass `--yes` to skip the confirmation prompt.
+- Stack installs are recorded in `state.json` under `stacks` with source URL, install date, and version.
+
 ## 0.3.2
 
 ### New

@@ -126,6 +126,31 @@ atb install --all           # same, on every surface
 
 ---
 
+## Stack registry
+
+Stacks are reusable bundles of guidelines for a specific technology (React, Python, etc.). You can create your own locally with `atb new stack <name>`, or install a published one from the public registry.
+
+```bash
+atb stack search react              # search the public registry
+atb stack add react                 # install from registry → <root>/stacks/react/
+atb stack add https://github.com/you/stack-python   # or install directly from a URL
+atb stack list                      # list installed stacks with source
+atb stack update                    # git pull every registry-managed stack
+atb stack update react              # or just one
+atb stack remove react              # delete a stack (warns if profiles reference it)
+```
+
+Once installed, reference the stack in your `profile.yaml`:
+
+```yaml
+stacks:
+  - react
+```
+
+Then reinstall your profile — the new stack guidelines are picked up automatically.
+
+---
+
 ## Switching between projects
 
 One profile is active at a time.
@@ -175,6 +200,11 @@ atb install my-project -s c,vs,cli   # CSV shortcut
 |---|---|
 | `config init / get / set / path / show` | Configure the content root |
 | `new profile / stack / shared <name>` | Scaffold a new profile, stack, or shared guideline |
+| `stack add <name-or-url>` | Install a stack from the public registry or a GitHub URL |
+| `stack search <query>` | Search the public registry for stacks |
+| `stack list` | List installed stacks with source (local / registry) |
+| `stack update [name]` | Pull the latest version of one or all registry stacks |
+| `stack remove <name>` | Delete a stack and remove it from state |
 | `install <profile>` / `uninstall <profile>` | Install or remove a profile on selected surfaces |
 | `switch <profile>` | Swap the active profile (same surfaces) |
 | `surface enable <s> --profile <p>` / `surface disable <s> --profile <p>` | Toggle one surface |

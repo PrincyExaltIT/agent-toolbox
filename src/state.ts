@@ -14,8 +14,15 @@ export interface ProfileState {
   pausedSurfaces?: Partial<Record<SurfaceName, { pausedAt: string }>>;
 }
 
+export interface RegistryStackState {
+  source: string;
+  installedAt: string;
+  version?: string;
+}
+
 export interface ToolboxState {
   profiles: Record<string, ProfileState>;
+  stacks?: Record<string, RegistryStackState>;
 }
 
 export function readState(): ToolboxState {
@@ -70,6 +77,24 @@ export function setPausedSurfaces(profile: string, surfaces: SurfaceName[]): voi
     {} as NonNullable<ProfileState['pausedSurfaces']>
   );
   writeState(state);
+}
+
+export function recordStackInstall(name: string, source: string, version?: string): void {
+  const state = readState();
+  state.stacks ??= {};
+  state.stacks[name] = { source, installedAt: new Date().toISOString(), version };
+  writeState(state);
+}
+
+export function recordStackRemove(name: string): void {
+  const state = readState();
+  if (!state.stacks) return;
+  delete state.stacks[name];
+  writeState(state);
+}
+
+export function getStackState(name: string): RegistryStackState | undefined {
+  return readState().stacks?.[name];
 }
 
 export function clearPausedSurfaces(profile: string): void {

@@ -33,6 +33,11 @@ import {
 } from './commands/config.js';
 import { ContentRootNotConfiguredError } from './config.js';
 import { SurfaceName } from './state.js';
+import { stackAdd } from './commands/stack-add.js';
+import { stackSearch } from './commands/stack-search.js';
+import { stackList } from './commands/stack-list.js';
+import { stackUpdate } from './commands/stack-update.js';
+import { stackRemove } from './commands/stack-remove.js';
 
 // Completion must run before commander parses anything — omelette short-circuits
 // the process when the shell is asking for suggestions.
@@ -262,6 +267,53 @@ configCmd
   .description('Dump the contents of the config file')
   .action(() => {
     configShow();
+  });
+
+const stackCmd = program
+  .command('stack')
+  .description('Manage stacks from the registry or GitHub');
+
+stackCmd
+  .command('add')
+  .argument('<name-or-url>', 'stack name (from registry) or full GitHub URL')
+  .description('Install a stack from the registry or directly from a GitHub URL')
+  .option('--yes', 'skip prompts')
+  .action(async (nameOrUrl: string, opts) => {
+    await stackAdd(nameOrUrl, opts);
+  });
+
+stackCmd
+  .command('remove')
+  .argument('<name>', 'stack name')
+  .description('Remove an installed stack')
+  .option('--yes', 'skip confirmation prompt')
+  .action(async (name: string, opts) => {
+    await stackRemove(name, opts);
+  });
+
+stackCmd
+  .command('update')
+  .argument('[name]', 'stack name — if omitted, updates all registry-managed stacks')
+  .description('Pull the latest version of one or all registry stacks')
+  .action(async (name: string | undefined) => {
+    await stackUpdate(name);
+  });
+
+stackCmd
+  .command('search')
+  .argument('<query>', 'keyword to search for')
+  .description('Search the public registry for stacks')
+  .option('--json', 'machine-readable output')
+  .action(async (query: string, opts) => {
+    await stackSearch(query, opts);
+  });
+
+stackCmd
+  .command('list')
+  .description('List all locally installed stacks with their source')
+  .option('--json', 'machine-readable output')
+  .action((opts) => {
+    stackList(opts);
   });
 
 const completionCmd = program

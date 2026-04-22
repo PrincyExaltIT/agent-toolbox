@@ -50,6 +50,22 @@ export function setPausedSurfaces(profile, surfaces) {
     }, {});
     writeState(state);
 }
+export function recordStackInstall(name, source, version) {
+    const state = readState();
+    state.stacks ??= {};
+    state.stacks[name] = { source, installedAt: new Date().toISOString(), version };
+    writeState(state);
+}
+export function recordStackRemove(name) {
+    const state = readState();
+    if (!state.stacks)
+        return;
+    delete state.stacks[name];
+    writeState(state);
+}
+export function getStackState(name) {
+    return readState().stacks?.[name];
+}
 export function clearPausedSurfaces(profile) {
     const state = readState();
     if (!state.profiles[profile])

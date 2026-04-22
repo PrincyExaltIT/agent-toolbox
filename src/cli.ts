@@ -208,6 +208,7 @@ configCmd
   .description('Set the content root and optionally import an existing tree')
   .option('--root <path>', 'absolute path for your toolbox content')
   .option('--from-path <src>', 'copy profiles/stacks/shared from this directory into the new root')
+  .option('--from-git <url>', 'clone a git repo and use it as the content root')
   .option('--yes', 'skip prompts and use defaults / passed flags')
   .action(async (opts) => {
     await configInit(opts);

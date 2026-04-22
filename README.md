@@ -49,6 +49,14 @@ atb config init --root ~/.agent-toolbox --yes
 
 The CLI refuses to operate until this is done. Your content lives in the root you choose — the package itself stores nothing.
 
+**From a shared team repo:**
+
+```bash
+atb config init --from-git https://github.com/your-team/toolbox
+```
+
+The repo is cloned and set as your content root. Run `git pull` inside it to stay in sync with the team.
+
 ### Step 2 — Create a profile
 
 ```bash

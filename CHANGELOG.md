@@ -4,6 +4,7 @@
 
 ### New
 
+- `atb config init --from-git <url>` — clone a shared git repo and use it as the content root. Team members run `git pull` inside the cloned directory to stay in sync.
 - `atb doctor` — verifies the full setup in one command: config file, content root, profiles (manifest valid, shared refs, stack refs, project_context), surface readiness (Claude config dir, VS Code prompts, Codex home), and state integrity. Exits 1 on errors, 0 on warnings only.
 
 ### Improved

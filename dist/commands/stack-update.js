@@ -3,17 +3,15 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import kleur from 'kleur';
 import * as p from '@clack/prompts';
-import { stacksRoot } from '../paths.js';
 import { readState } from '../state.js';
+import { resolveInStacksRoot } from './stack-add.js';
 export async function stackUpdate(name) {
-    const root = stacksRoot();
     const state = readState();
     const targets = [];
     if (name) {
         targets.push(name);
     }
     else {
-        // Update all registry-managed stacks (source != 'local').
         for (const [n, s] of Object.entries(state.stacks ?? {})) {
             if (s.source !== 'local')
                 targets.push(n);
@@ -27,7 +25,15 @@ export async function stackUpdate(name) {
     let updated = 0;
     let skipped = 0;
     for (const target of targets) {
-        const dir = path.join(root, target);
+        let dir;
+        try {
+            dir = resolveInStacksRoot(target);
+        }
+        catch {
+            console.log(kleur.yellow(`  ! ${target}: invalid stack name, skipping.`));
+            skipped++;
+            continue;
+        }
         if (!fs.existsSync(dir)) {
             console.log(kleur.yellow(`  ! ${target}: directory not found at ${dir}, skipping.`));
             skipped++;

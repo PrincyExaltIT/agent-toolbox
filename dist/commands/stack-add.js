@@ -35,7 +35,7 @@ export async function stackAdd(nameOrUrl, opts) {
         }
         url = entry.repo;
         assertSafeUrl(url);
-        name = resolveInStacksRoot(entry.name);
+        name = entry.name;
         version = entry.version;
     }
     const dest = resolveInStacksRoot(name);
@@ -63,9 +63,10 @@ export async function stackAdd(nameOrUrl, opts) {
             try {
                 const meta = parseYaml(fs.readFileSync(yamlPath, 'utf8'));
                 if (meta.name && meta.name !== name) {
-                    const canonical = path.resolve(stacksRoot(), meta.name);
+                    const root = path.resolve(stacksRoot());
+                    const canonical = path.resolve(root, meta.name);
                     // Only rename when the canonical path stays inside stacksRoot.
-                    if (canonical.startsWith(path.resolve(stacksRoot()) + path.sep)) {
+                    if (canonical.startsWith(root + path.sep)) {
                         fs.renameSync(dest, canonical);
                         name = meta.name;
                     }
@@ -78,7 +79,7 @@ export async function stackAdd(nameOrUrl, opts) {
             }
         }
     }
-    spinner.stop(kleur.green(`Cloned into ${path.join(stacksRoot(), name)}`));
+    spinner.stop(kleur.green(`Cloned into ${dest}`));
     recordStackInstall(name, url, version);
     console.log(kleur.green(`Stack "${name}" installed${version ? ` (${version})` : ''}.`));
     console.log(kleur.gray(`→ Reference it in a profile's stacks list, then run \`atb install <profile>\`.`));
@@ -96,7 +97,7 @@ function assertSafeUrl(url) {
 /** Resolves a stack name to an absolute path and asserts it stays inside stacksRoot. */
 export function resolveInStacksRoot(name) {
     const root = path.resolve(stacksRoot());
-    const resolved = path.resolve(stacksRoot(), name);
+    const resolved = path.resolve(root, name);
     if (!resolved.startsWith(root + path.sep)) {
         throw new Error(`Invalid stack name "${name}" — path must not contain ".." or path separators.\n→ List installed stacks with \`atb stack list\`.`);
     }

@@ -1,16 +1,10 @@
-import fs from 'node:fs';
 import kleur from 'kleur';
-import { stacksRoot } from '../paths.js';
+import { listStacks } from '../profiles.js';
 import { readState } from '../state.js';
 export function stackList(opts) {
-    const root = stacksRoot();
+    const localStacks = listStacks();
     const state = readState();
-    let localNames = [];
-    if (fs.existsSync(root)) {
-        localNames = fs.readdirSync(root, { withFileTypes: true })
-            .filter((e) => e.isDirectory())
-            .map((e) => e.name);
-    }
+    const localNames = localStacks.map((s) => s.name);
     if (localNames.length === 0 && !state.stacks) {
         if (opts.json) {
             console.log(JSON.stringify([], null, 2));
@@ -25,6 +19,7 @@ export function stackList(opts) {
         ...localNames,
         ...Object.keys(state.stacks ?? {}),
     ]);
+    const localDirByName = new Map(localStacks.map((s) => [s.name, s.dir]));
     if (opts.json) {
         const rows = Array.from(allNames).map((name) => {
             const tracked = state.stacks?.[name];
@@ -34,7 +29,7 @@ export function stackList(opts) {
                 repo: tracked?.source ?? null,
                 version: tracked?.version ?? null,
                 installedAt: tracked?.installedAt ?? null,
-                path: `${root}/${name}`,
+                path: localDirByName.get(name) ?? null,
             };
         });
         console.log(JSON.stringify(rows, null, 2));
@@ -48,7 +43,8 @@ export function stackList(opts) {
             console.log(`  ${kleur.bold(name.padEnd(22))} ${kleur.cyan('registry')}  ${kleur.gray(tracked.source + ver)}`);
         }
         else {
-            console.log(`  ${kleur.bold(name.padEnd(22))} ${kleur.gray('local    ')}  ${kleur.gray(`${root}/${name}`)}`);
+            const dir = localDirByName.get(name) ?? name;
+            console.log(`  ${kleur.bold(name.padEnd(22))} ${kleur.gray('local    ')}  ${kleur.gray(dir)}`);
         }
     }
     console.log();

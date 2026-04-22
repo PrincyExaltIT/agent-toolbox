@@ -1,14 +1,22 @@
 # agent-toolbox
 
-A CLI that helps you build and maintain a **personal AI workflow** — one profile per project, installed onto Claude Code, GitHub Copilot (VS Code + CLI), and OpenAI Codex with a single command. The package ships **no content** — you author your own profiles, stacks, and shared guidelines where you want, and the CLI manages them for you.
+Write your AI coding guidelines once. Install them on every agent, for every project.
+
+---
+
+You use Claude Code, GitHub Copilot, and Codex. You've written the same coding rules three times in three different places. When you switch projects, you start over. When a teammate joins, they start from scratch.
+
+**agent-toolbox** fixes that. You write one profile per project — your guidelines, your stacks, your rules. The CLI installs them on Claude Code, Copilot (VS Code + CLI), and Codex with a single command. Switch projects, not brains.
+
+The package ships **no content**. You own everything.
+
+---
 
 ## Install
 
-### From GitHub Packages
-
 One-time per machine:
 
-1. Create a GitHub Personal Access Token at <https://github.com/settings/tokens> with the `read:packages` scope.
+1. Create a GitHub Personal Access Token at <https://github.com/settings/tokens> with `read:packages`.
 2. Add to your user-scope `~/.npmrc`:
    ```
    @princyexaltit:registry=https://npm.pkg.github.com
@@ -20,78 +28,104 @@ One-time per machine:
    atb --version   # 0.3.x
    ```
 
-Both binaries are installed: `agent-toolbox` (long) and `atb` (short). The rest of this README uses `atb`.
+Both `agent-toolbox` and `atb` are installed. The rest of this README uses `atb`.
 
-## First-time setup — configure a content root
+---
 
-The CLI refuses to do anything before you tell it where your content lives. This is the only mandatory step.
+## Quickstart
+
+### Step 1 — Point the CLI at your content
 
 ```bash
 atb config init
-# wizard prompts for a path; the conventional choice is ~/.agent-toolbox/
+# Wizard prompts for a path. Conventional choice: ~/.agent-toolbox/
 ```
 
-Non-interactive / CI:
+Non-interactive:
 
 ```bash
 atb config init --root ~/.agent-toolbox --yes
 ```
 
-Importing an existing tree (e.g. moving from another machine):
+The CLI refuses to operate until this is done. Your content lives in the root you choose — the package itself stores nothing.
+
+### Step 2 — Create a profile
 
 ```bash
-atb config init --root ~/.agent-toolbox --from-path /path/to/old/toolbox
+atb new shared git-guidelines       # → <root>/shared/git-guidelines.md
+atb new stack react                 # → <root>/stacks/react/
+atb new profile my-project          # → <root>/profiles/my-project/
 ```
 
-Resolution order (first hit wins):
+A profile is a manifest that wires shared guidelines and stacks together for a specific project:
 
-1. `--root <path>` flag on any command
-2. `AGENT_TOOLBOX_ROOT` env var
-3. `contentRoot` in `~/.agent-toolbox/config.json`
+```yaml
+# <root>/profiles/my-project/profile.yaml
+name: my-project
+description: Frontend monorepo — React + TypeScript
 
-The config file itself always sits at `~/.agent-toolbox/config.json` (invariant — this is the CLI's own config, not your content).
+shared:
+  - git-guidelines.md
+  - code-review.md
 
-## Author your content
+stacks:
+  - react
+
+project_context: project-context.md
+
+copilot:
+  name: my-project
+  description: Frontend guidelines agent for my-project
+```
+
+```
+<root>/profiles/my-project/
+├── profile.yaml          # manifest
+├── project-context.md    # architecture, commands, non-negotiable rules
+└── CLAUDE.md             # @-imports for Claude Code
+```
+
+### Step 3 — Install on your agent surfaces
 
 ```bash
-atb new shared git-guidelines            # → <root>/shared/git-guidelines.md (skeleton)
-atb new stack angular                    # → <root>/stacks/angular/ (skeleton guideline files)
-atb new profile my-project               # → <root>/profiles/my-project/ (manifest + project-context + CLAUDE.md)
+atb install my-project              # interactive surface picker
+atb install my-project -c -v        # Claude Code + Copilot VS Code
+atb install my-project --all        # all surfaces at once
+atb install my-project --all --dry-run  # preview before writing
 ```
 
-Each wizard lets you pick what goes in. Non-interactive variants exist for scripts (`--yes` + `--description` etc.).
+Done. Every agent now loads your guidelines from your files — nothing is inlined, nothing is duplicated.
 
-### What a profile looks like
+---
 
-```
-<content-root>/profiles/my-project/
-├── profile.yaml            # manifest: shared + stacks + project_context + copilot metadata
-├── project-context.md      # architecture, commands, project-specific rules
-└── CLAUDE.md               # @-imports wired to the selected shared/stack files
-```
+## Switching between projects
 
-### What a stack looks like
-
-```
-<content-root>/stacks/angular/
-├── angular-coding-guidelines.md
-└── component-testing.instructions.md   # optional
-```
-
-### What a shared guideline looks like
-
-Just a Markdown file with YAML frontmatter (`name`, `description`) and whatever sections make sense.
-
-## Install a profile onto the agent surfaces
+One profile is active at a time.
 
 ```bash
-atb install my-project                   # interactive surface picker
-atb install my-project -c -v             # short flags (claude + copilot-vs)
-atb install my-project -s c,vs,cli       # CSV shortcut
-atb install my-project --all --dry-run   # preview all 4 surfaces
+atb switch other-project    # swap the active profile (same surfaces)
+atb off                     # pause — remembers the active surface set
+atb on                      # resume exactly where you left off
 ```
 
-All surfaces share the same flag set:
+---
+
+## How it works
+
+The CLI generates **thin files** (~3 KB) for each surface: a preamble and a table mapping scope to your guideline files. The agent reads those files on demand using its `read` tool — same lazy-loading shape that Claude's `@`-imports use. No 60 KB context tax upfront.
+
+| Surface | What gets written |
+|---|---|
+| `claude` | Marker block inside `$CLAUDE_CONFIG_DIR/CLAUDE.md` with an `@`-import to your profile's `CLAUDE.md`. |
+| `copilot-vscode` | A `<name>.agent.md` copied into the VS Code user `prompts/` folder. Appears in Copilot Chat agents picker after restart. |
+| `copilot-cli` | `export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=…` printed or written to a shell rc. |
+| `codex` | `~/.codex/AGENTS.override.md` symlinked (or copied) to your profile's generated `AGENTS.md`. |
+
+**Zero trace in the target project.** All writes are user-scope. Your project repo stays clean.
+
+---
+
+## Surface flags
 
 | Long | Short | `--surfaces` code |
 |---|---|---|
@@ -101,48 +135,67 @@ All surfaces share the same flag set:
 | `--codex` | `-x` | `x` |
 | `--all` | — | `all` |
 
-Only one profile can be active at a time. Trying to install a second profile while another is active errors out and points at `atb switch` (swap) or `atb off` (pause).
+```bash
+atb install my-project -s c,vs,cli   # CSV shortcut
+```
 
-## Every command
+---
 
-| Command | Purpose |
+## All commands
+
+| Command | What it does |
 |---|---|
-| `config init / get / set / path / show` | Manage the content root and CLI config |
-| `new profile / stack / shared <name>` | Scaffold a new content file / directory |
-| `install <profile>` / `uninstall <profile>` | Bootstrap / remove a profile on selected surfaces |
-| `switch <profile>` | Swap the currently-installed profile for another (same surfaces) |
+| `config init / get / set / path / show` | Configure the content root |
+| `new profile / stack / shared <name>` | Scaffold a new profile, stack, or shared guideline |
+| `install <profile>` / `uninstall <profile>` | Install or remove a profile on selected surfaces |
+| `switch <profile>` | Swap the active profile (same surfaces) |
 | `surface enable <s> --profile <p>` / `surface disable <s> --profile <p>` | Toggle one surface |
-| `on` / `off` | Quick pause / resume — remembers the active surface set |
-| `list` / `status` | Discover profiles / check what's installed where |
+| `on` / `off` | Pause / resume — remembers which surfaces were active |
+| `doctor` | Check that the content root, profiles, and surfaces are correctly configured |
+| `list` / `status` | List available profiles / check what is installed where |
 | `completion install` / `completion uninstall` | Shell tab-completion |
 
-Everything common to install flows: `--dry-run`, `--yes`, `--config-dir`, `--vscode-settings`, `--codex-home`, `--write-shell-rc`.
+Common flags on all install flows: `--dry-run`, `--yes`, `--config-dir`, `--vscode-settings`, `--codex-home`, `--write-shell-rc`.
 
-## Surfaces
+---
 
-| Surface | What gets written |
-|---|---|
-| `claude` | Per-profile marker block inside `$CLAUDE_CONFIG_DIR/CLAUDE.md` with an `@`-import to `<content-root>/profiles/<name>/CLAUDE.md`. |
-| `copilot-vscode` | A copy of the generated `<name>.agent.md` inside the VS Code user `prompts/` folder. Appears in the Copilot Chat agents picker after restart. |
-| `copilot-cli` | Prints (or writes into a shell rc) `export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=…` pointing at the profile's generated `AGENTS.md`. |
-| `codex` | Symlinks (or copies) `~/.codex/AGENTS.override.md` to the profile's generated `AGENTS.md`. |
+## Content root resolution
 
-Generated `.agent.md` and `AGENTS.md` are **thin** (~3 KB): a preamble + a table mapping "scope → absolute path". The agent uses its `read` tool to pull the guidelines on demand — no 60 KB context tax upfront, same lazy shape Claude gets from `@`-imports.
+First hit wins:
+
+1. `--root <path>` flag on any command
+2. `AGENT_TOOLBOX_ROOT` env var
+3. `contentRoot` in `~/.agent-toolbox/config.json`
+
+The CLI config always lives at `~/.agent-toolbox/config.json` — separate from your content.
+
+---
 
 ## Migration from v0.2
 
-v0.3 removed the bundled `frequencies` profile, `shared/` and `stacks/` content from the package. If you were on v0.2:
+v0.3 removed bundled content. If you were on v0.2:
 
-1. `atb config init --root ~/.agent-toolbox --from-path <your-v0.2-clone>/guidelines` (copies the content you had)
-2. Or copy manually: `cp -r <clone>/guidelines/* ~/.agent-toolbox/`
-3. `atb install <profile>` keeps working — everything else is unchanged (`state.json`, surface markers, `profile.yaml` format).
+```bash
+atb config init --root ~/.agent-toolbox --from-path <your-v0.2-clone>/guidelines
+```
 
-## Publishing (maintainer)
+Or copy manually:
 
-Push to `main` with changes under `src/` or `package.json` → GitHub Actions auto-bumps the patch version and publishes to GitHub Packages via the repo `GITHUB_TOKEN`. Minor / major bumps: edit `package.json` manually in your commit.
+```bash
+cp -r <clone>/guidelines/* ~/.agent-toolbox/
+```
+
+`state.json`, surface markers, and `profile.yaml` format are all unchanged. `atb install <profile>` keeps working.
+
+---
 
 ## Constraints
 
 - **Node ≥ 20** required.
-- **Windows** supported everywhere. `npm install -g github:...` on Windows is known-broken (npm temp-dir symlink bug) — install from the registry instead.
-- **Zero trace in the target project** — all writes are user-scope (Claude user config, VS Code user profile, Codex home, shell rc). The project repo stays clean.
+- **Windows** supported. `npm install -g github:...` on Windows is known-broken (npm temp-dir symlink bug) — install from the registry instead.
+
+---
+
+## Publishing (maintainer)
+
+Push to `main` with changes under `src/` or `package.json` → GitHub Actions auto-bumps the patch version and publishes to GitHub Packages via `GITHUB_TOKEN`. For minor / major bumps, edit `package.json` manually before pushing.

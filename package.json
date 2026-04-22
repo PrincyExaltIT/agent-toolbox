@@ -1,7 +1,7 @@
 {
   "name": "@princyexaltit/agent-toolbox",
   "version": "0.3.1",
-  "description": "Personal multi-profile agent toolbox CLI — install / switch / toggle profiles for Claude Code, Copilot VS Code, Copilot CLI, and Codex.",
+  "description": "CLI to install and sync your AI coding guidelines across Claude Code, Copilot, and Codex — one profile per project.",
   "type": "module",
   "bin": {
     "agent-toolbox": "./dist/cli.js",

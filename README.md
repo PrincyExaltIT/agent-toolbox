@@ -55,7 +55,9 @@ The CLI refuses to operate until this is done. Your content lives in the root yo
 atb config init --from-git https://github.com/your-team/toolbox
 ```
 
-The repo is cloned and set as your content root. Run `git pull` inside it to stay in sync with the team.
+The repo is cloned and set as your content root. Run `atb pull` to stay in sync with the team.
+
+Use [agent-toolbox-starter](https://github.com/PrincyExaltIT/agent-toolbox-starter) as a starting point for your team repo.
 
 ### Step 2 — Create a profile
 

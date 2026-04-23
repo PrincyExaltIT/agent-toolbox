@@ -22,7 +22,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -w -p tsconfig.json",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "engines": {
     "node": ">=20"
@@ -37,6 +40,8 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/omelette": "^0.4.5",
-    "typescript": "^5.7.0"
+    "@vitest/coverage-v8": "^4.1.5",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.5"
   }
 }

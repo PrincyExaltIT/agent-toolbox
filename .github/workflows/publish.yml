@@ -37,16 +37,14 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           scope: '@experience_alto'
 
-      # Fail fast with a clear signal if NPM_TOKEN is wrong / expired / not
-      # authorised for this scope, instead of burning through ci + build +
-      # version-bump first and failing at `npm publish` with an opaque 404.
+      # Fail fast with a clear signal if NPM_TOKEN is wrong / expired /
+      # revoked, instead of burning through ci + build + version-bump first
+      # and failing at `npm publish` with an opaque 401/404. `npm whoami` is
+      # the only cross-token-type check that reliably works — listing scope
+      # packages needs org-level permissions that granular tokens (rightly)
+      # do not grant, so don't include it here.
       - name: Verify npm auth
-        run: |
-          echo "Authenticated as: $(npm whoami --registry=https://registry.npmjs.org)"
-          npm access list packages --registry=https://registry.npmjs.org | grep '@experience_alto' || {
-            echo "::error::NPM_TOKEN has no access to any @experience_alto package. Token likely belongs to a different user, or the owner is not a publisher on the scope."
-            exit 1
-          }
+        run: npm whoami --registry=https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

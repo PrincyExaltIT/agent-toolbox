@@ -52,6 +52,14 @@ export function claudeUserMd(override?: string): string {
   return join(claudeConfigDir(override), 'CLAUDE.md');
 }
 
+export function claudeAgentsDir(override?: string): string {
+  return join(claudeConfigDir(override), 'agents');
+}
+
+export function claudeSkillsDir(override?: string): string {
+  return join(claudeConfigDir(override), 'skills');
+}
+
 export function vscodeUserDir(settingsOverride?: string): string {
   if (settingsOverride) return normalise(path.dirname(settingsOverride));
   switch (process.platform) {

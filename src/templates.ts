@@ -124,6 +124,74 @@ specifics belong in profile project-context.md. -->
 `;
 }
 
+export function renderSubagentSkeleton(name: string, description: string): string {
+  return `---
+name: ${name}
+description: ${description}
+model: inherit
+---
+
+# ${name}
+
+<!-- TODO: when should Claude delegate to this subagent? Be concrete about the
+task shape, inputs, and outputs. The \`description\` field above is what the
+main agent reads to decide when to hand off. -->
+
+## Instructions
+
+<!-- TODO: how should this subagent behave? List its responsibilities, the
+tools it should prefer, and the format of its final answer. -->
+`;
+}
+
+export function renderSkillSkeleton(name: string, description: string): string {
+  return `---
+name: ${name}
+description: ${description}
+---
+
+# ${name}
+
+<!-- TODO: describe the skill. Claude auto-loads the SKILL.md when the
+description above matches the user's intent. Drop supporting scripts or
+reference files next to this SKILL.md inside the same folder. -->
+
+## When to use this skill
+
+<!-- TODO: triggers / typical prompts. -->
+
+## How the skill works
+
+<!-- TODO: steps, tools, expected output shape. -->
+`;
+}
+
+export function renderPromptSkeleton(name: string, description: string): string {
+  return `---
+description: ${description}
+mode: agent
+---
+
+# ${name}
+
+<!-- TODO: the Copilot prompt body. Reference workspace files via \`#file:\`
+and tasks via \`#task:\`. Keep it focused on one job. -->
+`;
+}
+
+export function renderChatModeSkeleton(name: string, description: string): string {
+  return `---
+description: ${description}
+tools: []
+---
+
+# ${name}
+
+<!-- TODO: define the chat mode persona and constraints. Selected by the user
+from the VS Code Copilot Chat mode picker. -->
+`;
+}
+
 export function renderProfileClaudeMd(
   profileName: string,
   shared: string[],

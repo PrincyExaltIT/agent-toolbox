@@ -14,6 +14,7 @@ import { showDashboard } from './commands/default.js';
 import { newProfile } from './commands/new.js';
 import { newStack } from './commands/new-stack.js';
 import { newShared } from './commands/new-shared.js';
+import { newAsset } from './commands/new-asset.js';
 import {
   installCompletion,
   uninstallCompletion,
@@ -158,6 +159,50 @@ newCmd
     await newShared(name, opts);
   });
 
+newCmd
+  .command('agent')
+  .argument('<name>', 'subagent filename (written under <stack>/claude/agents/)')
+  .description('Scaffold a Claude Code subagent inside a stack')
+  .option('--stack <name>', 'stack that will own the subagent')
+  .option('--description <s>', 'one-line description (used as the subagent\'s routing hint)')
+  .option('--yes', 'skip prompts')
+  .action(async (name: string, opts) => {
+    await newAsset('agent', name, opts);
+  });
+
+newCmd
+  .command('skill')
+  .argument('<name>', 'skill folder name (written under <stack>/claude/skills/<name>/SKILL.md)')
+  .description('Scaffold a Claude Code skill inside a stack')
+  .option('--stack <name>', 'stack that will own the skill')
+  .option('--description <s>', 'one-line description (used as the skill\'s routing hint)')
+  .option('--yes', 'skip prompts')
+  .action(async (name: string, opts) => {
+    await newAsset('skill', name, opts);
+  });
+
+newCmd
+  .command('prompt')
+  .argument('<name>', 'prompt filename (written under <stack>/copilot-vscode/prompts/<name>.prompt.md)')
+  .description('Scaffold a Copilot VS Code prompt file inside a stack')
+  .option('--stack <name>', 'stack that will own the prompt')
+  .option('--description <s>', 'one-line description')
+  .option('--yes', 'skip prompts')
+  .action(async (name: string, opts) => {
+    await newAsset('prompt', name, opts);
+  });
+
+newCmd
+  .command('chatmode')
+  .argument('<name>', 'chat mode filename (written under <stack>/copilot-vscode/chat-modes/<name>.chatmode.md)')
+  .description('Scaffold a Copilot VS Code chat mode inside a stack')
+  .option('--stack <name>', 'stack that will own the chat mode')
+  .option('--description <s>', 'one-line description')
+  .option('--yes', 'skip prompts')
+  .action(async (name: string, opts) => {
+    await newAsset('chatmode', name, opts);
+  });
+
 program
   .command('off')
   .argument('[profile]', 'profile to pause (optional — auto-detects the unique active profile if omitted)')
@@ -285,8 +330,9 @@ stackCmd
 stackCmd
   .command('remove')
   .argument('<name>', 'stack name')
-  .description('Remove an installed stack')
+  .description('Remove an installed stack (cascades asset cleanup across profiles by default)')
   .option('--yes', 'skip confirmation prompt')
+  .option('--keep-assets', 'do not remove agents/skills/prompts this stack deployed to user-scope surfaces')
   .action(async (name: string, opts) => {
     await stackRemove(name, opts);
   });

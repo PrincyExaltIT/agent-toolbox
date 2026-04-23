@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import kleur from 'kleur';
 import { readConfig, resolveContentRoot } from '../config.js';
-import { listProfiles, resolveShared, resolveStack } from '../profiles.js';
+import { listProfiles, listStacks, resolveShared, resolveStack } from '../profiles.js';
 import { readManifest } from '../manifest.js';
 import { readState } from '../state.js';
 import {
@@ -11,6 +11,8 @@ import {
   stacksRoot,
   sharedRoot,
   claudeConfigDir,
+  claudeAgentsDir,
+  claudeSkillsDir,
   vscodePromptsDir,
   codexHome,
 } from '../paths.js';
@@ -213,6 +215,61 @@ export function doctor(): void {
           ? ok(name, 'profile source still present')
           : warn(name, `recorded in state but source not found at ${dir} — run \`atb uninstall ${name}\``)
       );
+    }
+  }
+
+  // ── 6. Deployed assets ─────────────────────────────────────────────────────
+  //
+  // Every agent/skill/prompt that the CLI wrote to a user-scope location is
+  // tracked in state.deployedAssets. Two failure modes:
+  //   (a) tracked path no longer exists on disk (user deleted manually)
+  //   (b) file on disk under a managed dir with our `<stack>-` prefix, but
+  //       the stack is gone from the content root — an orphan from a cleanup
+  //       that didn't cascade (e.g. stack-remove --keep-assets).
+
+  const anyAssets = stateProfiles.some((n) => (state.profiles[n].deployedAssets ?? []).length > 0);
+  const knownStackNames = new Set(listStacks().map((s) => s.name));
+  const orphans: string[] = [];
+
+  for (const dir of [claudeAgentsDir(), claudeSkillsDir(), vscodePromptsDir()]) {
+    if (!fs.existsSync(dir)) continue;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.name.includes('-')) continue;
+      const prefix = entry.name.slice(0, entry.name.indexOf('-'));
+      if (knownStackNames.has(prefix)) continue;
+      // Only flag entries that could plausibly be ours: non-dotfiles, and for
+      // the prompts dir only .prompt.md/.chatmode.md files.
+      if (entry.name.startsWith('.')) continue;
+      if (dir === vscodePromptsDir() && entry.isFile()) {
+        if (!entry.name.endsWith('.prompt.md') && !entry.name.endsWith('.chatmode.md')) continue;
+      }
+      orphans.push(`${dir}/${entry.name}`);
+    }
+  }
+
+  if (anyAssets || orphans.length > 0) {
+    printSection('Deployed assets');
+
+    for (const name of stateProfiles) {
+      const assets = state.profiles[name].deployedAssets ?? [];
+      if (assets.length === 0) continue;
+      const missing = assets.filter((a) => !fs.existsSync(a.path));
+      if (missing.length === 0) {
+        run(ok(name, `${assets.length} tracked asset${assets.length === 1 ? '' : 's'}`));
+      } else {
+        for (const a of missing) {
+          run(
+            warn(
+              name,
+              `tracked ${a.kind} missing on disk: ${a.path} — run \`atb install ${name}\` to redeploy or \`atb install ${name} --uninstall\` to clear state`
+            )
+          );
+        }
+      }
+    }
+
+    for (const orphan of orphans) {
+      run(warn('orphan', `${orphan} — stack not in content root (run \`atb stack add <url>\` or delete manually)`));
     }
   }
 

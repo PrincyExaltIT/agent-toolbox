@@ -1,8 +1,0 @@
-# Copy this to ~/.npmrc (user-scope) after creating a GitHub PAT with the
-# `read:packages` scope. Replace <YOUR_PAT> with the token value.
-#
-# The PAT is per-machine and per-user. Do NOT commit your real ~/.npmrc — it
-# contains the secret token.
-
-@princyexaltit:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=<YOUR_PAT>

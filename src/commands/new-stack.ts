@@ -70,6 +70,15 @@ export async function newStack(name: string, opts: NewStackOptions): Promise<voi
     fs.writeFileSync(filePath, renderStackGuidelineSkeleton(name, file, description));
   }
 
+  // Stub the asset subfolders so authors see the stack's full shape. Empty
+  // .gitkeep files keep them version-controllable until real assets land.
+  for (const sub of ['claude/agents', 'claude/skills', 'copilot-vscode/prompts', 'copilot-vscode/chat-modes']) {
+    const subDir = path.join(dir, sub);
+    fs.mkdirSync(subDir, { recursive: true });
+    const keep = path.join(subDir, '.gitkeep');
+    if (!fs.existsSync(keep)) fs.writeFileSync(keep, '');
+  }
+
   const out = dir.split(path.sep).join('/');
   if (interactive) {
     p.log.success(`Created stack at ${out}`);

@@ -15,7 +15,7 @@ The package ships **no content**. You own everything.
 ## Install
 
 ```bash
-npm install -g @princyexaltit/agent-toolbox
+npm install -g @experience_alto/agent-toolbox
 atb --version   # 0.3.x
 ```
 
@@ -119,7 +119,7 @@ atb install --all           # same, on every surface
 
 ## Stack registry
 
-Stacks are reusable bundles of guidelines for a specific technology (React, Python, etc.). You can create your own locally with `atb new stack <name>`, or install a published one from the public registry.
+Stacks are reusable bundles for a specific technology or workflow (React, Python, your team's base dev rules, etc.). You can create your own locally with `atb new stack <name>`, or install a published one from the public registry.
 
 ```bash
 atb stack search react              # search the public registry
@@ -128,7 +128,8 @@ atb stack add https://github.com/you/stack-python   # or install directly from a
 atb stack list                      # list installed stacks with source
 atb stack update                    # git pull every registry-managed stack
 atb stack update react              # or just one
-atb stack remove react              # delete a stack (warns if profiles reference it)
+atb stack remove react              # delete a stack + cascade cleanup of deployed assets
+atb stack remove react --keep-assets  # leave deployed agents/skills/prompts in place
 ```
 
 Once installed, reference the stack in your `profile.yaml`:
@@ -138,7 +139,33 @@ stacks:
   - react
 ```
 
-Then reinstall your profile — the new stack guidelines are picked up automatically.
+Then reinstall your profile — the new stack guidelines (and any agents / skills / prompts it ships) are picked up automatically.
+
+### What a stack can ship
+
+Beyond the top-level `*.md` guideline files, a stack can carry surface-scoped artefacts that get deployed to user-scope agent locations on `atb install`:
+
+```
+stacks/<stack>/
+├── *.md                                 # guidelines (multi-surface, via @-import / agent-file)
+├── claude/
+│   ├── agents/<name>.md                 # → ~/.claude/agents/<stack>-<name>.md
+│   └── skills/<skill>/SKILL.md + files  # → ~/.claude/skills/<stack>-<skill>/
+└── copilot-vscode/
+    ├── prompts/<name>.prompt.md         # → <vscode-prompts>/<stack>-<name>.prompt.md
+    └── chat-modes/<name>.chatmode.md    # → <vscode-prompts>/<stack>-<name>.chatmode.md
+```
+
+Every deployed file is namespace-prefixed with the stack name so two stacks can ship the same-named asset without collision. The CLI tracks deployed paths in `state.json` so `atb install <profile> --uninstall` and `atb stack remove <stack>` clean up precisely. Scaffold new artefacts inside a stack with:
+
+```bash
+atb new agent code-reviewer --stack base-dev --description "reviews PRs"
+atb new skill echo --stack base-dev
+atb new prompt review --stack base-dev
+atb new chatmode planner --stack base-dev
+```
+
+Files at `~/.claude/agents/<stack>-*` and `<vscode-prompts>/<stack>-*` are managed by `atb` — edit the source in the stack repo and re-run `atb install` or `atb stack update` rather than editing in place.
 
 ---
 
@@ -191,6 +218,7 @@ atb install my-project -s c,vs,cli   # CSV shortcut
 |---|---|
 | `config init / get / set / path / show` | Configure the content root |
 | `new profile / stack / shared <name>` | Scaffold a new profile, stack, or shared guideline |
+| `new agent / skill / prompt / chatmode <name> --stack <s>` | Scaffold a Claude subagent, Claude skill, Copilot prompt, or Copilot chat mode inside a stack |
 | `stack add <name-or-url>` | Install a stack from the public registry or a GitHub URL |
 | `stack search <query>` | Search the public registry for stacks |
 | `stack list` | List installed stacks with source (local / registry) |

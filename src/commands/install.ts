@@ -2,8 +2,12 @@ import kleur from 'kleur';
 import * as p from '@clack/prompts';
 import { locateProfile, ProfileSource } from '../profiles.js';
 import { generate, GeneratedArtifacts } from '../generator.js';
-import { runClaude } from '../surfaces/claude.js';
-import { runCopilotVscode } from '../surfaces/copilot-vscode.js';
+import { runClaude, deployClaudeAssets, removeClaudeAssets } from '../surfaces/claude.js';
+import {
+  runCopilotVscode,
+  deployCopilotVscodeAssets,
+  removeCopilotVscodeAssets,
+} from '../surfaces/copilot-vscode.js';
 import { runCopilotCli } from '../surfaces/copilot-cli.js';
 import { runCodex } from '../surfaces/codex.js';
 import { readState, recordInstall, recordUninstall, SurfaceName } from '../state.js';
@@ -91,6 +95,21 @@ export async function install(profileName: string, opts: InstallOptions): Promis
 
   const results: SurfaceResult[] = [];
   for (const surface of surfaces) {
+    // On uninstall, remove stack assets BEFORE the main surface block —
+    // keeps the filesystem state consistent if anything throws mid-way.
+    if (opts.uninstall && surface === 'claude') {
+      runAssetStep(() =>
+        removeClaudeAssets(profile, { configDir: opts.configDir, dryRun: opts.dryRun })
+      );
+    } else if (opts.uninstall && surface === 'copilot-vscode') {
+      runAssetStep(() =>
+        removeCopilotVscodeAssets(profile, {
+          vscodeSettings: opts.vscodeSettings,
+          dryRun: opts.dryRun,
+        })
+      );
+    }
+
     try {
       const result = runSurface(surface, profile, artifacts, opts);
       results.push(result);
@@ -101,6 +120,35 @@ export async function install(profileName: string, opts: InstallOptions): Promis
     } catch (err) {
       results.push({
         surface,
+        action: 'noop',
+        detail: kleur.red(err instanceof Error ? err.message : String(err)),
+      });
+      continue;
+    }
+
+    // On install, deploy stack assets AFTER the main surface block succeeded —
+    // agents/skills are orthogonal to the CLAUDE.md marker, but there's no
+    // point deploying them if the main surface itself errored out.
+    if (!opts.uninstall && surface === 'claude') {
+      runAssetStep(() =>
+        deployClaudeAssets(profile, { configDir: opts.configDir, dryRun: opts.dryRun })
+      );
+    } else if (!opts.uninstall && surface === 'copilot-vscode') {
+      runAssetStep(() =>
+        deployCopilotVscodeAssets(profile, {
+          vscodeSettings: opts.vscodeSettings,
+          dryRun: opts.dryRun,
+        })
+      );
+    }
+  }
+
+  function runAssetStep(fn: () => SurfaceResult): void {
+    try {
+      results.push(fn());
+    } catch (err) {
+      results.push({
+        surface: 'assets',
         action: 'noop',
         detail: kleur.red(err instanceof Error ? err.message : String(err)),
       });
@@ -117,7 +165,7 @@ export async function install(profileName: string, opts: InstallOptions): Promis
           : r.action === 'planned'
             ? kleur.cyan('?')
             : kleur.green('✓');
-    p.log.info(`${icon} ${kleur.bold(r.surface.padEnd(16))} ${r.detail}`);
+    p.log.info(`${icon} ${kleur.bold(r.surface.padEnd(24))} ${r.detail}`);
   }
 
   p.outro(opts.dryRun ? 'Dry-run complete.' : 'Done.');

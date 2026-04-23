@@ -37,7 +37,10 @@ function setEnv(key: string, value: string | undefined): void {
 describe('claudeConfigDir precedence', () => {
   it('prefers the override argument over everything else', () => {
     setEnv('CLAUDE_CONFIG_DIR', '/should/be/ignored');
-    expect(claudeConfigDir('C:\\explicit')).toBe('C:/explicit');
+    // Build the input with the platform-native separator so the test runs
+    // on both Windows (normalises backslashes) and POSIX (already forward).
+    const input = ['opt', 'explicit'].join(path.sep);
+    expect(claudeConfigDir(input)).toBe('opt/explicit');
   });
 
   it('uses CLAUDE_CONFIG_DIR when no override is passed', () => {

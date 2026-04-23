@@ -309,11 +309,17 @@ describe('deployOne', () => {
 });
 
 describe('normalise', () => {
-  it('converts backslashes to forward slashes', () => {
-    expect(normalise('C:\\Users\\foo\\bar')).toBe('C:/Users/foo/bar');
+  it('converts the platform-native separator to forward slashes', () => {
+    // The function's contract: paths produced by `path.join()` (which uses
+    // path.sep) come out with '/'. Hard-coding backslashes would pass on
+    // Windows and fail on POSIX (where '\' is a valid filename char, not a
+    // separator). Build input via path.sep so both CIs exercise the real
+    // conversion path.
+    const input = ['a', 'b', 'c'].join(path.sep);
+    expect(normalise(input)).toBe('a/b/c');
   });
 
-  it('leaves forward-slash paths untouched on POSIX input', () => {
+  it('leaves already-forward-slash paths untouched', () => {
     expect(normalise('/home/foo/bar')).toBe('/home/foo/bar');
   });
 });

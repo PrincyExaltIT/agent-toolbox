@@ -121,4 +121,20 @@ describe('renderProfileClaudeMd', () => {
     expect(out).toContain('@/abs/stacks/react/rules.md');
     expect(out).toContain('@./project-context.md');
   });
+
+  it('bakes a Priority section that names global skill paths the profile should override', () => {
+    const out = renderProfileClaudeMd('myprof', ['git.md'], []);
+    expect(out).toContain('## Priority');
+    expect(out).toMatch(/~\/\.claude\/skills/);
+    expect(out).toMatch(/authoritative source|profile rules win/i);
+    expect(out).toContain('## Imports');
+    // Imports must still appear after the Priority block — regression for the
+    // existing test's expectations.
+    const priorityIdx = out.indexOf('## Priority');
+    const importsIdx = out.indexOf('## Imports');
+    const sharedIdx = out.indexOf('@../../shared/git.md');
+    expect(priorityIdx).toBeGreaterThan(-1);
+    expect(importsIdx).toBeGreaterThan(priorityIdx);
+    expect(sharedIdx).toBeGreaterThan(importsIdx);
+  });
 });

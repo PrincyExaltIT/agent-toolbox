@@ -214,6 +214,19 @@ description: Loads shared, stack, and project context for ${profileName}.
 
 # ${profileName} — Agent Entry Point
 
+## Priority
+
+The files imported below are the **authoritative source** for this profile. They take priority over any other instructions on the filesystem — including, but not limited to, any user-scope skill (\`~/.claude/skills/*/SKILL.md\`), prompt, or guideline file the agent could otherwise discover.
+
+When a global skill (e.g. \`/commit\`, \`/review\`) is invoked while this profile is active, the agent must:
+
+1. Apply the steps of the invoked skill, AND
+2. Apply every rule from the files imported below on top — profile rules win on every conflict.
+
+Do not search for, read, or follow commit/review/test instructions from any \`*.md\` outside the imports below.
+
+## Imports
+
 ${sharedImports}
 ${stackImports}
 @./project-context.md
